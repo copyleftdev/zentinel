@@ -1,0 +1,31 @@
+rules:
+  - id: dangerous-exec
+    pattern: exec(...)
+    message: Use of exec() is dangerous
+    languages: [python, javascript]
+    severity: ERROR
+
+  - id: dangerous-eval
+    pattern: eval(...)
+    message: Use of eval() is dangerous
+    languages: [python, javascript]
+    severity: ERROR
+
+  - id: hardcoded-secret
+    pattern: $KEY = "..."
+    message: Hardcoded secret detected
+    languages: [python, javascript]
+    severity: WARNING
+
+  - id: subprocess-shell-true
+    pattern: subprocess.call(..., shell=True)
+    message: subprocess with shell=True is dangerous
+    languages: [python]
+    severity: ERROR
+
+  - id: sql-injection-fstring
+    pattern: |
+      $QUERY = f"SELECT ... {$VAR} ..."
+    message: Possible SQL injection via f-string
+    languages: [python]
+    severity: ERROR

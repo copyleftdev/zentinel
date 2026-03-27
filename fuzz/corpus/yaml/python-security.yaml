@@ -1,0 +1,127 @@
+rules:
+  # ── Command Injection ──────────────────────────────────
+  - id: python.security.exec-usage
+    pattern: exec(...)
+    message: Use of exec() can lead to code injection
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.eval-usage
+    pattern: eval(...)
+    message: Use of eval() can lead to code injection
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.os-system
+    pattern: os.system(...)
+    message: Use of os.system() is vulnerable to command injection — use subprocess with shell=False
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.os-popen
+    pattern: os.popen(...)
+    message: Use of os.popen() is vulnerable to command injection
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.subprocess-shell
+    pattern: subprocess.call(...)
+    message: subprocess.call() may be vulnerable to command injection if shell=True
+    languages: [python]
+    severity: WARNING
+
+  - id: python.security.subprocess-run
+    pattern: subprocess.run(...)
+    message: subprocess.run() may be vulnerable to command injection if shell=True
+    languages: [python]
+    severity: WARNING
+
+  - id: python.security.subprocess-popen
+    pattern: subprocess.Popen(...)
+    message: subprocess.Popen() may be vulnerable to command injection if shell=True
+    languages: [python]
+    severity: WARNING
+
+  # ── Deserialization ────────────────────────────────────
+  - id: python.security.pickle-load
+    pattern: pickle.load(...)
+    message: Deserializing untrusted data with pickle can lead to arbitrary code execution
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.pickle-loads
+    pattern: pickle.loads(...)
+    message: Deserializing untrusted data with pickle can lead to arbitrary code execution
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.yaml-load
+    pattern: yaml.load(...)
+    message: yaml.load() with untrusted data can lead to code execution — use yaml.safe_load()
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.marshal-loads
+    pattern: marshal.loads(...)
+    message: marshal.loads() can execute arbitrary code — do not use on untrusted data
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.shelve-open
+    pattern: shelve.open(...)
+    message: shelve uses pickle internally — do not use on untrusted data
+    languages: [python]
+    severity: WARNING
+
+  # ── Cryptography ───────────────────────────────────────
+  - id: python.security.hashlib-md5
+    pattern: hashlib.md5(...)
+    message: MD5 is cryptographically broken — use SHA-256 or stronger
+    languages: [python]
+    severity: WARNING
+
+  - id: python.security.hashlib-sha1
+    pattern: hashlib.sha1(...)
+    message: SHA-1 is cryptographically weak — use SHA-256 or stronger
+    languages: [python]
+    severity: WARNING
+
+  # ── Dangerous Builtins ─────────────────────────────────
+  - id: python.security.compile-usage
+    pattern: compile(...)
+    message: compile() can be used to execute arbitrary code
+    languages: [python]
+    severity: WARNING
+
+  - id: python.security.input-python2
+    pattern: input(...)
+    message: In Python 2, input() evaluates the input as code — use raw_input() instead
+    languages: [python]
+    severity: INFO
+
+  # ── Network / TLS ──────────────────────────────────────
+  - id: python.security.ssl-no-verify
+    pattern: ssl._create_unverified_context(...)
+    message: Disabling SSL certificate verification is insecure
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.requests-no-verify
+    pattern: requests.get(...)
+    message: Ensure verify=True when making HTTP requests to validate TLS certificates
+    languages: [python]
+    severity: INFO
+
+  # ── Temp Files ─────────────────────────────────────────
+  - id: python.security.tempfile-mktemp
+    pattern: tempfile.mktemp(...)
+    message: tempfile.mktemp() is vulnerable to race conditions — use tempfile.mkstemp()
+    languages: [python]
+    severity: WARNING
+
+  # ── Hardcoded Secrets ──────────────────────────────────
+  - id: python.security.hardcoded-secret
+    pattern: $KEY = "..."
+    message: Possible hardcoded secret — use environment variables or a secrets manager
+    languages: [python]
+    severity: WARNING

@@ -1,0 +1,86 @@
+rules:
+  # ── Code Injection ─────────────────────────────────────
+  - id: javascript.security.eval-usage
+    pattern: eval(...)
+    message: Use of eval() can lead to code injection — avoid evaluating untrusted strings
+    languages: [javascript]
+    severity: ERROR
+
+  - id: javascript.security.function-constructor
+    pattern: Function(...)
+    message: new Function() is equivalent to eval() — avoid with untrusted input
+    languages: [javascript]
+    severity: ERROR
+
+  - id: javascript.security.settimeout-string
+    pattern: setTimeout(...)
+    message: setTimeout() with a string argument acts like eval() — pass a function instead
+    languages: [javascript]
+    severity: WARNING
+
+  - id: javascript.security.setinterval-string
+    pattern: setInterval(...)
+    message: setInterval() with a string argument acts like eval() — pass a function instead
+    languages: [javascript]
+    severity: WARNING
+
+  # ── Command Injection ──────────────────────────────────
+  - id: javascript.security.exec-usage
+    pattern: exec(...)
+    message: Use of exec() can lead to command injection — validate and sanitize input
+    languages: [javascript]
+    severity: ERROR
+
+  - id: javascript.security.child-process-exec
+    pattern: child_process.exec(...)
+    message: child_process.exec() is vulnerable to command injection — use execFile() instead
+    languages: [javascript]
+    severity: ERROR
+
+  - id: javascript.security.child-process-spawn
+    pattern: child_process.spawn(...)
+    message: Ensure arguments to child_process.spawn() are sanitized
+    languages: [javascript]
+    severity: WARNING
+
+  # ── XSS / DOM ─────────────────────────────────────────
+  - id: javascript.security.innerhtml
+    pattern: document.write(...)
+    message: document.write() can lead to XSS — use textContent or DOM APIs instead
+    languages: [javascript]
+    severity: ERROR
+
+  # ── Deserialization ────────────────────────────────────
+  - id: javascript.security.json-parse
+    pattern: JSON.parse(...)
+    message: Ensure input to JSON.parse() is from a trusted source — malformed input can cause DoS
+    languages: [javascript]
+    severity: INFO
+
+  # ── Cryptography ───────────────────────────────────────
+  - id: javascript.security.crypto-createhash-md5
+    pattern: crypto.createHash(...)
+    message: Verify hash algorithm is not MD5 or SHA-1 — use SHA-256 or stronger
+    languages: [javascript]
+    severity: INFO
+
+  # ── Network / TLS ──────────────────────────────────────
+  - id: javascript.security.http-createserver
+    pattern: http.createServer(...)
+    message: Using plain HTTP — consider HTTPS for production
+    languages: [javascript]
+    severity: INFO
+
+  # ── Hardcoded Secrets ──────────────────────────────────
+  - id: javascript.security.hardcoded-secret
+    pattern: $KEY = "..."
+    message: Possible hardcoded secret — use environment variables or a secrets manager
+    languages: [javascript]
+    severity: WARNING
+
+  # ── Dangerous Patterns ─────────────────────────────────
+  - id: javascript.security.process-exit
+    pattern: process.exit(...)
+    message: process.exit() skips cleanup handlers — ensure graceful shutdown
+    languages: [javascript]
+    severity: INFO

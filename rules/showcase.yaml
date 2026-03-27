@@ -1,0 +1,63 @@
+rules:
+  # High-precision rules only — no broad assignment patterns.
+  # These trigger on specific dangerous function calls.
+
+  - id: dangerous-eval
+    pattern: eval(...)
+    message: eval() can execute arbitrary code
+    languages: [javascript]
+    severity: ERROR
+
+  - id: dangerous-exec
+    pattern: exec(...)
+    message: exec() can lead to command injection
+    languages: [javascript]
+    severity: ERROR
+
+  - id: dangerous-function-constructor
+    pattern: Function(...)
+    message: new Function() is equivalent to eval()
+    languages: [javascript]
+    severity: ERROR
+
+  - id: dangerous-settimeout
+    pattern: setTimeout(...)
+    message: setTimeout() with string argument acts like eval()
+    languages: [javascript]
+    severity: WARNING
+
+  - id: dangerous-setinterval
+    pattern: setInterval(...)
+    message: setInterval() with string argument acts like eval()
+    languages: [javascript]
+    severity: WARNING
+
+  - id: dangerous-document-write
+    pattern: document.write(...)
+    message: document.write() can lead to XSS
+    languages: [javascript]
+    severity: ERROR
+
+  - id: dangerous-child-process-exec
+    pattern: child_process.exec(...)
+    message: child_process.exec() is vulnerable to command injection
+    languages: [javascript]
+    severity: ERROR
+
+  - id: dangerous-child-process-spawn
+    pattern: child_process.spawn(...)
+    message: Ensure child_process.spawn() arguments are sanitized
+    languages: [javascript]
+    severity: WARNING
+
+  - id: dangerous-process-exit
+    pattern: process.exit(...)
+    message: process.exit() skips cleanup handlers
+    languages: [javascript]
+    severity: INFO
+
+  - id: http-createserver
+    pattern: http.createServer(...)
+    message: Plain HTTP server — consider HTTPS for production
+    languages: [javascript]
+    severity: INFO

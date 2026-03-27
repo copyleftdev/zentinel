@@ -1,0 +1,23 @@
+rules:
+  # ── Cross-language rules (Python + JavaScript) ─────────
+  # These detect patterns that exist in both languages.
+
+  # ── Code Injection ─────────────────────────────────────
+  - id: universal.security.eval
+    pattern: eval(...)
+    message: eval() executes arbitrary code — never use with untrusted input
+    languages: [python, javascript]
+    severity: ERROR
+
+  - id: universal.security.exec
+    pattern: exec(...)
+    message: exec() can execute arbitrary commands — validate all input
+    languages: [python, javascript]
+    severity: ERROR
+
+  # ── Hardcoded Secrets ──────────────────────────────────
+  - id: universal.security.hardcoded-secret
+    pattern: $KEY = "..."
+    message: Possible hardcoded secret — use environment variables or a vault
+    languages: [python, javascript]
+    severity: WARNING

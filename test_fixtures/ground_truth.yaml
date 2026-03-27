@@ -1,0 +1,65 @@
+# Ground truth manifest for Zentinel rule validation.
+# Each entry maps a fixture file + ruleset to exact expected findings.
+# The h9 hypothesis test verifies: zero false positives, zero false negatives.
+
+tests:
+  # ── Python vulnerable file: every rule should fire ─────
+  - file: test_fixtures/python/vulnerable.py
+    rules: rules/python-security.yaml
+    language: python
+    expected_count: 21
+    expected_rules:
+      - python.security.exec-usage
+      - python.security.eval-usage
+      - python.security.os-system
+      - python.security.os-popen
+      - python.security.subprocess-shell
+      - python.security.subprocess-run
+      - python.security.subprocess-popen
+      - python.security.pickle-load
+      - python.security.pickle-loads
+      - python.security.yaml-load
+      - python.security.marshal-loads
+      - python.security.shelve-open
+      - python.security.hashlib-md5
+      - python.security.hashlib-sha1
+      - python.security.compile-usage
+      - python.security.input-python2
+      - python.security.ssl-no-verify
+      - python.security.requests-no-verify
+      - python.security.tempfile-mktemp
+      - python.security.hardcoded-secret
+
+  # ── Python safe file: zero findings ────────────────────
+  - file: test_fixtures/python/safe.py
+    rules: rules/python-security.yaml
+    language: python
+    expected_count: 0
+    expected_rules: []
+
+  # ── JavaScript vulnerable file: every rule should fire ─
+  - file: test_fixtures/javascript/vulnerable.js
+    rules: rules/javascript-security.yaml
+    language: javascript
+    expected_count: 14
+    expected_rules:
+      - javascript.security.eval-usage
+      - javascript.security.function-constructor
+      - javascript.security.settimeout-string
+      - javascript.security.setinterval-string
+      - javascript.security.exec-usage
+      - javascript.security.child-process-exec
+      - javascript.security.child-process-spawn
+      - javascript.security.innerhtml
+      - javascript.security.json-parse
+      - javascript.security.crypto-createhash-md5
+      - javascript.security.http-createserver
+      - javascript.security.hardcoded-secret
+      - javascript.security.process-exit
+
+  # ── JavaScript safe file: zero findings ────────────────
+  - file: test_fixtures/javascript/safe.js
+    rules: rules/javascript-security.yaml
+    language: javascript
+    expected_count: 0
+    expected_rules: []

@@ -1,0 +1,53 @@
+name: New Rule
+description: Suggest a security rule to add to the corpus
+labels: ["rule"]
+body:
+  - type: input
+    id: rule-id
+    attributes:
+      label: Rule ID
+      placeholder: "python.security.dangerous-xyz"
+    validations:
+      required: true
+
+  - type: textarea
+    id: pattern
+    attributes:
+      label: Pattern
+      description: What code pattern should this rule detect?
+      placeholder: |
+        ```yaml
+        pattern: dangerous_function(...)
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this dangerous?
+      description: Link to CWE, OWASP, CVE, or explain the risk.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - Python
+        - JavaScript
+        - Both
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - ERROR
+        - WARNING
+        - INFO
+    validations:
+      required: true

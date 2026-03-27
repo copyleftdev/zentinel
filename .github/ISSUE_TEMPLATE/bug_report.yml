@@ -1,0 +1,51 @@
+name: Bug Report
+description: Something isn't working right
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect vs what actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal command or file to trigger the bug.
+      placeholder: |
+        ```
+        zent scan file.py --config rules.yaml
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Paste the full output (including any crash/panic trace).
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Zentinel version
+      description: Output of `zent --version` or the git commit SHA.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux (x86_64)
+        - Linux (aarch64)
+        - macOS (x86_64)
+        - macOS (Apple Silicon)
+        - Other
+    validations:
+      required: true

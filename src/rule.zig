@@ -1,0 +1,308 @@
+/// Rule system — YAML parsing, pattern compilation, prefilter extraction.
+const std = @import("std");
+const zir = @import("zir");
+
+// ── Types ──
+
+pub const Severity = enum {
+    ERROR,
+    WARNING,
+    INFO,
+
+    pub fn fromString(s: []const u8) ?Severity {
+        if (std.mem.eql(u8, s, "ERROR")) return .ERROR;
+        if (std.mem.eql(u8, s, "WARNING")) return .WARNING;
+        if (std.mem.eql(u8, s, "INFO")) return .INFO;
+        return null;
+    }
+};
+
+pub const Rule = struct {
+    id: []const u8,
+    pattern_source: []const u8,
+    message: []const u8,
+    languages: []const []const u8,
+    severity: Severity,
+};
+
+pub const CallPattern = struct {
+    callee: []const u8, // "exec", "eval"
+    has_ellipsis: bool, // ... in args
+};
+
+pub const AssignmentPattern = struct {
+    lhs_is_metavar: bool, // $KEY → true
+    rhs_is_string_literal: bool, // "..." → true
+};
+
+pub const MemberCallPattern = struct {
+    object: []const u8, // "subprocess"
+    method: []const u8, // "call"
+    has_ellipsis: bool,
+};
+
+pub const CompiledPattern = union(enum) {
+    call: CallPattern,
+    assignment: AssignmentPattern,
+    member_call: MemberCallPattern,
+};
+
+pub const PrefilterReq = struct {
+    required_kinds: []const zir.Kind,
+    required_atoms: []const []const u8,
+};
+
+pub const CompiledRule = struct {
+    rule: Rule,
+    pattern: CompiledPattern,
+    prefilter: PrefilterReq,
+};
+
+// ── YAML Parser (minimal subset) ──
+
+pub fn parseRules(yaml_source: []const u8, allocator: std.mem.Allocator) ![]Rule {
+    var rules = std.ArrayList(Rule).init(allocator);
+
+    var current: ?Rule = null;
+    var in_block_scalar = false;
+    var block_start: usize = 0;
+    var block_end: usize = 0;
+
+    var line_iter = std.mem.splitScalar(u8, yaml_source, '\n');
+    while (line_iter.next()) |raw_line| {
+        const line = std.mem.trimRight(u8, raw_line, &[_]u8{ '\r', ' ' });
+
+        // Block scalar continuation: indented lines after "pattern: |"
+        if (in_block_scalar) {
+            if (line.len >= 6 and line[0] == ' ' and line[1] == ' ' and line[2] == ' ' and line[3] == ' ' and line[4] == ' ' and line[5] == ' ') {
+                // Still in block scalar — extend the end
+                const content_start = @intFromPtr(raw_line.ptr) - @intFromPtr(yaml_source.ptr);
+                block_end = @min(content_start + raw_line.len, yaml_source.len);
+                continue;
+            } else {
+                // Block scalar ended
+                if (current != null) {
+                    current.?.pattern_source = std.mem.trim(u8, yaml_source[block_start..block_end], &[_]u8{ ' ', '\n', '\r' });
+                }
+                in_block_scalar = false;
+            }
+        }
+
+        // New rule: "  - id: <value>"
+        if (std.mem.indexOf(u8, line, "- id:")) |_| {
+            if (current) |r| {
+                if (r.id.len > 0) try rules.append(r);
+            }
+            const id_val = extractValue(line, "id:") orelse "";
+            current = Rule{
+                .id = id_val,
+                .pattern_source = "",
+                .message = "",
+                .languages = &.{},
+                .severity = .ERROR,
+            };
+            continue;
+        }
+
+        if (current == null) continue;
+
+        // pattern: value  OR  pattern: |
+        if (extractValue(line, "pattern:")) |val| {
+            if (std.mem.eql(u8, val, "|")) {
+                in_block_scalar = true;
+                const next_pos = @intFromPtr(raw_line.ptr) - @intFromPtr(yaml_source.ptr) + raw_line.len + 1;
+                block_start = @min(next_pos, yaml_source.len);
+                block_end = block_start;
+            } else {
+                current.?.pattern_source = val;
+            }
+            continue;
+        }
+
+        if (extractValue(line, "message:")) |val| {
+            current.?.message = val;
+            continue;
+        }
+
+        if (extractValue(line, "severity:")) |val| {
+            current.?.severity = Severity.fromString(val) orelse .ERROR;
+            continue;
+        }
+
+        if (extractValue(line, "languages:")) |val| {
+            current.?.languages = try parseFlowList(val, allocator);
+            continue;
+        }
+    }
+
+    // Flush last block scalar
+    if (in_block_scalar and current != null) {
+        current.?.pattern_source = std.mem.trim(u8, yaml_source[block_start..block_end], &[_]u8{ ' ', '\n', '\r' });
+    }
+
+    // Flush last rule
+    if (current) |r| {
+        if (r.id.len > 0) try rules.append(r);
+    }
+
+    return rules.toOwnedSlice();
+}
+
+fn extractValue(line: []const u8, key: []const u8) ?[]const u8 {
+    const idx = std.mem.indexOf(u8, line, key) orelse return null;
+    const after = line[idx + key.len ..];
+    return std.mem.trim(u8, after, &[_]u8{ ' ', '\t' });
+}
+
+fn parseFlowList(val: []const u8, allocator: std.mem.Allocator) ![]const []const u8 {
+    // Parse "[python, javascript]"
+    const inner = std.mem.trim(u8, val, &[_]u8{ '[', ']', ' ' });
+    var items = std.ArrayList([]const u8).init(allocator);
+    var iter = std.mem.splitScalar(u8, inner, ',');
+    while (iter.next()) |item| {
+        const trimmed = std.mem.trim(u8, item, &[_]u8{ ' ', '\t' });
+        if (trimmed.len > 0) {
+            try items.append(trimmed);
+        }
+    }
+    return items.toOwnedSlice();
+}
+
+// ── Pattern Compiler ──
+
+pub const CompileError = error{
+    UnsupportedPattern,
+    OutOfMemory,
+};
+
+pub fn compilePattern(pattern_source: []const u8) CompileError!CompiledPattern {
+    const src = std.mem.trim(u8, pattern_source, &[_]u8{ ' ', '\n', '\r', '\t' });
+
+    // Check for assignment pattern: contains "=" not inside parens
+    if (detectAssignment(src)) {
+        return .{ .assignment = .{
+            .lhs_is_metavar = src.len > 0 and src[0] == '$',
+            .rhs_is_string_literal = std.mem.indexOf(u8, src, "\"...\"") != null,
+        } };
+    }
+
+    // Check for member call: "object.method(...)"
+    if (detectMemberCall(src)) |mc| {
+        return .{ .member_call = .{
+            .object = mc.object,
+            .method = mc.method,
+            .has_ellipsis = std.mem.indexOf(u8, src, "...") != null,
+        } };
+    }
+
+    // Check for simple call: "func(...)"
+    if (detectCall(src)) |callee| {
+        return .{ .call = .{
+            .callee = callee,
+            .has_ellipsis = std.mem.indexOf(u8, src, "...") != null,
+        } };
+    }
+
+    return CompileError.UnsupportedPattern;
+}
+
+fn detectAssignment(src: []const u8) bool {
+    // Look for "=" that's not "==" and not inside parens
+    var depth: u32 = 0;
+    var i: usize = 0;
+    while (i < src.len) : (i += 1) {
+        if (src[i] == '(') {
+            depth += 1;
+        } else if (src[i] == ')') {
+            if (depth > 0) depth -= 1;
+        } else if (src[i] == '=' and depth == 0) {
+            // Not ==
+            if (i + 1 < src.len and src[i + 1] == '=') {
+                i += 1;
+                continue;
+            }
+            // Not preceded by ! < > (!=, <=, >=)
+            if (i > 0 and (src[i - 1] == '!' or src[i - 1] == '<' or src[i - 1] == '>')) continue;
+            return true;
+        }
+    }
+    return false;
+}
+
+const MemberCallParts = struct { object: []const u8, method: []const u8 };
+
+fn detectMemberCall(src: []const u8) ?MemberCallParts {
+    // "subprocess.call(...)" → object="subprocess", method="call"
+    const paren_idx = std.mem.indexOfScalar(u8, src, '(') orelse return null;
+    const before_paren = src[0..paren_idx];
+    const dot_idx = std.mem.lastIndexOfScalar(u8, before_paren, '.') orelse return null;
+    const object = before_paren[0..dot_idx];
+    const method = before_paren[dot_idx + 1 ..];
+    if (object.len == 0 or method.len == 0) return null;
+    // Verify object is an identifier (no special chars)
+    if (object[0] == '$' or object[0] == '"') return null;
+    return .{ .object = object, .method = method };
+}
+
+fn detectCall(src: []const u8) ?[]const u8 {
+    // "exec(...)" → "exec"
+    const paren_idx = std.mem.indexOfScalar(u8, src, '(') orelse return null;
+    const callee = std.mem.trim(u8, src[0..paren_idx], &[_]u8{ ' ', '\t' });
+    if (callee.len == 0) return null;
+    // Must be a simple identifier (no dots, no $)
+    for (callee) |c| {
+        if (c == '.' or c == '$' or c == ' ') return null;
+    }
+    return callee;
+}
+
+// ── Prefilter Extraction ──
+
+pub fn extractPrefilter(pattern: CompiledPattern, allocator: std.mem.Allocator) !PrefilterReq {
+    var kinds = std.ArrayList(zir.Kind).init(allocator);
+    var atoms = std.ArrayList([]const u8).init(allocator);
+
+    switch (pattern) {
+        .call => |p| {
+            try kinds.append(.call);
+            try atoms.append(p.callee);
+        },
+        .assignment => |_| {
+            try kinds.append(.assignment);
+        },
+        .member_call => |p| {
+            try kinds.append(.call);
+            try kinds.append(.member_access);
+            try atoms.append(p.object);
+            try atoms.append(p.method);
+        },
+    }
+
+    return .{
+        .required_kinds = try kinds.toOwnedSlice(),
+        .required_atoms = try atoms.toOwnedSlice(),
+    };
+}
+
+// ── Convenience ──
+
+pub fn compileRules(rules: []const Rule, allocator: std.mem.Allocator) ![]CompiledRule {
+    var compiled = std.ArrayList(CompiledRule).init(allocator);
+
+    for (rules) |r| {
+        const pattern = compilePattern(r.pattern_source) catch |err| {
+            switch (err) {
+                CompileError.UnsupportedPattern => continue, // skip unsupported patterns
+                else => return err,
+            }
+        };
+        const prefilter = try extractPrefilter(pattern, allocator);
+        try compiled.append(.{
+            .rule = r,
+            .pattern = pattern,
+            .prefilter = prefilter,
+        });
+    }
+
+    return compiled.toOwnedSlice();
+}
