@@ -9,6 +9,8 @@ Zentinel scans your code for security issues in microseconds, not seconds. One b
 [![Binary Size](https://img.shields.io/badge/Binary-2.7MB-brightgreen?style=flat-square)]()
 [![Fuzz Tested](https://img.shields.io/badge/Fuzz_Tested-1_Billion_Inputs-blueviolet?style=flat-square)]()
 [![SARIF](https://img.shields.io/badge/Output-SARIF_v2.1-orange?style=flat-square)]()
+[![Downloads](https://img.shields.io/github/downloads/copyleftdev/zentinel/total?style=flat-square&label=Downloads&color=brightgreen)](https://github.com/copyleftdev/zentinel/releases)
+[![Release](https://img.shields.io/github/v/release/copyleftdev/zentinel?style=flat-square&label=Release)](https://github.com/copyleftdev/zentinel/releases/latest)
 
 ---
 
