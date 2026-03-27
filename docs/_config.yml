@@ -1,0 +1,23 @@
+title: Zentinel
+description: Static analysis that doesn't waste your time.
+remote_theme: just-the-docs/just-the-docs
+url: https://copyleftdev.github.io/zentinel
+
+color_scheme: dark
+
+aux_links:
+  GitHub: https://github.com/copyleftdev/zentinel
+  Releases: https://github.com/copyleftdev/zentinel/releases
+
+nav_enabled: true
+search_enabled: true
+
+footer_content: "Copyright 2026 Don Johnson and Zentinel Contributors. Apache 2.0."
+
+callouts:
+  warning:
+    title: Warning
+    color: yellow
+  tip:
+    title: Tip
+    color: green
