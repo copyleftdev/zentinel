@@ -66,6 +66,14 @@ def get_rule_languages(rule_file: Path) -> set[str]:
     return langs
 
 
+def clean_zir_cache():
+    """Remove stale ZIR cache to avoid cross-version segfaults."""
+    import shutil
+    cache_dir = Path(".zentinel-cache")
+    if cache_dir.exists():
+        for f in cache_dir.glob("*.zir"):
+            f.unlink()
+
 def scan_fixtures(rule_file: Path, fixture_files: list[Path]) -> set[str]:
     """Run zent scan and return the set of rule IDs that fired."""
     if not fixture_files:
@@ -93,6 +101,8 @@ def main():
     if not ZENT.exists():
         print("ERROR: zent binary not found. Run: zig build -Doptimize=ReleaseFast")
         sys.exit(1)
+
+    clean_zir_cache()
 
     # Find hand-written rule files (exclude community/)
     rule_files = sorted(RULES_DIR.glob("*.yaml"))
