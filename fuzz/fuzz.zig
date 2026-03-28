@@ -24,6 +24,7 @@ const normalizer = @import("normalizer");
 const rule = @import("rule");
 const matcher = @import("matcher");
 const fast_matcher = @import("fast_matcher");
+const taint = @import("taint");
 const cache = @import("cache");
 
 const stderr = std.io.getStdErr().writer();
@@ -102,9 +103,12 @@ const TargetFn = *const fn ([]const u8) void;
 fn getTarget(name: []const u8) ?TargetFn {
     if (std.mem.eql(u8, name, "normalizer-py")) return fuzzNormalizerPython;
     if (std.mem.eql(u8, name, "normalizer-js")) return fuzzNormalizerJS;
+    if (std.mem.eql(u8, name, "normalizer-go")) return fuzzNormalizerGo;
+    if (std.mem.eql(u8, name, "normalizer-ts")) return fuzzNormalizerTS;
     if (std.mem.eql(u8, name, "rules")) return fuzzRules;
     if (std.mem.eql(u8, name, "pattern")) return fuzzPattern;
     if (std.mem.eql(u8, name, "matcher")) return fuzzMatcher;
+    if (std.mem.eql(u8, name, "taintsource")) return fuzzTaintSource;
     if (std.mem.eql(u8, name, "cache")) return fuzzCache;
     if (std.mem.eql(u8, name, "roundtrip")) return fuzzRoundtrip;
     if (std.mem.eql(u8, name, "mapkind")) return fuzzMapKind;
@@ -127,6 +131,16 @@ fn fuzzNormalizerPython(input: []const u8) void {
 /// Fuzz the JavaScript normalizer.
 fn fuzzNormalizerJS(input: []const u8) void {
     fuzzNormalizer(input, .javascript, "javascript");
+}
+
+/// Fuzz the Go normalizer.
+fn fuzzNormalizerGo(input: []const u8) void {
+    fuzzNormalizer(input, .go, "go");
+}
+
+/// Fuzz the TypeScript normalizer.
+fn fuzzNormalizerTS(input: []const u8) void {
+    fuzzNormalizer(input, .typescript, "typescript");
 }
 
 fn fuzzNormalizer(input: []const u8, lang: ts.Language, lang_name: []const u8) void {
@@ -305,9 +319,13 @@ fn fuzzMapKind(input: []const u8) void {
         const chunk = input[off..][0..len];
         const k1 = normalizer.mapKind(chunk, .python);
         const k2 = normalizer.mapKind(chunk, .javascript);
+        const k3 = normalizer.mapKind(chunk, .go);
+        const k4 = normalizer.mapKind(chunk, .typescript);
         // Invariant: mapKind is deterministic
         std.debug.assert(normalizer.mapKind(chunk, .python) == k1);
         std.debug.assert(normalizer.mapKind(chunk, .javascript) == k2);
+        std.debug.assert(normalizer.mapKind(chunk, .go) == k3);
+        std.debug.assert(normalizer.mapKind(chunk, .typescript) == k4);
         off += len;
     }
 }
@@ -393,6 +411,21 @@ fn fuzzPatternFast(input: []const u8) void {
     }
 }
 
+/// Fuzz taint source pattern parser: random strings → SourceSpec. Fast.
+fn fuzzTaintSource(input: []const u8) void {
+    if (input.len == 0) return;
+    var off: usize = 0;
+    while (off < input.len) {
+        const len = @min(input.len - off, (input[off] % 64) + 1);
+        const chunk = input[off..][0..len];
+        // Must not crash
+        const spec = taint.parseSourcePattern(chunk);
+        // Invariant: result always has at least callee or object set (or both null for garbage)
+        _ = spec;
+        off += len;
+    }
+}
+
 // ── Billion Campaign ──
 
 fn runBillionCampaign() !void {
@@ -414,6 +447,7 @@ fn runBillionCampaign() !void {
         .{ .name = "simd", .func = fuzzSimd, .count = 300_000_000 },
         .{ .name = "patternfast", .func = fuzzPatternFast, .count = 200_000_000 },
         .{ .name = "childindex", .func = fuzzChildIndex, .count = 100_000_000 },
+        .{ .name = "taintsource", .func = fuzzTaintSource, .count = 100_000_000 },
         .{ .name = "pattern", .func = fuzzPatternFast, .count = 50_000_000 },
         .{ .name = "rules", .func = fuzzRules, .count = 50_000_000 },
     };
@@ -529,18 +563,24 @@ fn runGenerated(target: []const u8, target_fn: TargetFn, count: usize) !void {
 /// Inject semi-valid structure into random bytes to exercise deeper parser paths.
 fn injectStructure(buf: []u8, rand: std.Random) void {
     const fragments = [_][]const u8{
-        "function ",     "eval(",       "exec(",
-        "var ",          "const ",      "let ",
-        "import ",       "require(",    "class ",
-        "if(",           "for(",        "while(",
-        "return ",       "def ",        "async ",
-        "subprocess.",   "os.",         "pickle.",
-        "= \"",         "(...)",       "shell=True",
-        "setTimeout(",  "setInterval(", "JSON.parse(",
-        "\n",            "{\n",         "}\n",
-        "rules:\n",      "  - id: ",    "    pattern: ",
+        "function ",      "eval(",        "exec(",
+        "var ",           "const ",       "let ",
+        "import ",        "require(",     "class ",
+        "if(",            "for(",         "while(",
+        "return ",        "def ",         "async ",
+        "subprocess.",    "os.",          "pickle.",
+        "= \"",          "(...)",        "shell=True",
+        "setTimeout(",   "setInterval(", "JSON.parse(",
+        "\n",             "{\n",          "}\n",
+        "rules:\n",       "  - id: ",     "    pattern: ",
         "    message: ",  "    severity: ERROR\n",
         "    languages: [python, javascript]\n",
+        "func ",          "package ",     ":= ",
+        "interface ",     "struct ",      "go ",
+        "defer ",         "md5.Sum(",     "sha1.Sum(",
+        "request.args.get(", "input(",    "cursor.execute(",
+        "    sources: [",    "    tier: 2\n",
+        "f\"",            "`template`",   "from ",
     };
 
     // Sprinkle fragments into the random buffer
