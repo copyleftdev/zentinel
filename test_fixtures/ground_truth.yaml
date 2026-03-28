@@ -7,7 +7,7 @@ tests:
   - file: test_fixtures/python/vulnerable.py
     rules: rules/python-security.yaml
     language: python
-    expected_count: 21
+    expected_count: 30
     expected_rules:
       - python.security.exec-usage
       - python.security.eval-usage
@@ -16,6 +16,9 @@ tests:
       - python.security.subprocess-shell
       - python.security.subprocess-run
       - python.security.subprocess-popen
+      - python.security.subprocess-call-shell-true
+      - python.security.subprocess-run-shell-true
+      - python.security.subprocess-popen-shell-true
       - python.security.pickle-load
       - python.security.pickle-loads
       - python.security.yaml-load
@@ -23,11 +26,15 @@ tests:
       - python.security.shelve-open
       - python.security.hashlib-md5
       - python.security.hashlib-sha1
+      - python.security.hashlib-new-md5
+      - python.security.hashlib-new-sha1
       - python.security.compile-usage
       - python.security.input-python2
       - python.security.ssl-no-verify
       - python.security.requests-no-verify
       - python.security.tempfile-mktemp
+      - python.security.eval-fstring
+      - python.security.exec-fstring
       - python.security.hardcoded-secret
 
   # ── Python safe file: zero findings ────────────────────
@@ -41,7 +48,7 @@ tests:
   - file: test_fixtures/javascript/vulnerable.js
     rules: rules/javascript-security.yaml
     language: javascript
-    expected_count: 14
+    expected_count: 19
     expected_rules:
       - javascript.security.eval-usage
       - javascript.security.function-constructor
@@ -53,6 +60,9 @@ tests:
       - javascript.security.innerhtml
       - javascript.security.json-parse
       - javascript.security.crypto-createhash-md5
+      - javascript.security.crypto-createhash-md5-precise
+      - javascript.security.crypto-createhash-sha1
+      - javascript.security.eval-template
       - javascript.security.http-createserver
       - javascript.security.hardcoded-secret
       - javascript.security.process-exit

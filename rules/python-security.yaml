@@ -119,6 +119,51 @@ rules:
     languages: [python]
     severity: WARNING
 
+  # ── Tier 1: Precise Command Injection ───────────────────
+  - id: python.security.subprocess-call-shell-true
+    pattern: subprocess.call(..., shell=True)
+    message: subprocess.call() with shell=True is vulnerable to command injection
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.subprocess-run-shell-true
+    pattern: subprocess.run(..., shell=True)
+    message: subprocess.run() with shell=True is vulnerable to command injection
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.subprocess-popen-shell-true
+    pattern: subprocess.Popen(..., shell=True)
+    message: subprocess.Popen() with shell=True is vulnerable to command injection
+    languages: [python]
+    severity: ERROR
+
+  # ── Tier 1: Precise Weak Cryptography ──────────────────
+  - id: python.security.hashlib-new-md5
+    pattern: hashlib.new("md5")
+    message: MD5 is cryptographically broken — use SHA-256 or stronger
+    languages: [python]
+    severity: WARNING
+
+  - id: python.security.hashlib-new-sha1
+    pattern: hashlib.new("sha1")
+    message: SHA-1 is cryptographically weak — use SHA-256 or stronger
+    languages: [python]
+    severity: WARNING
+
+  # ── Tier 1: Code Injection via F-String ────────────────
+  - id: python.security.eval-fstring
+    pattern: eval(f"...")
+    message: eval() with f-string enables code injection via string interpolation
+    languages: [python]
+    severity: ERROR
+
+  - id: python.security.exec-fstring
+    pattern: exec(f"...")
+    message: exec() with f-string enables code injection via string interpolation
+    languages: [python]
+    severity: ERROR
+
   # ── Hardcoded Secrets ──────────────────────────────────
   - id: python.security.hardcoded-secret
     pattern: $KEY = "..."

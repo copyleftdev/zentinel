@@ -74,6 +74,20 @@ def fetch_url(url):
 def make_temp():
     return tempfile.mktemp()                        # TRIGGER python.security.tempfile-mktemp
 
+# ── Tier 1: Precise Weak Cryptography ────────────────────
+def hash_new_md5(data):
+    return hashlib.new("md5", data)                 # TRIGGER python.security.hashlib-new-md5
+
+def hash_new_sha1(data):
+    return hashlib.new("sha1", data)                # TRIGGER python.security.hashlib-new-sha1
+
+# ── Tier 1: Code Injection via F-String ──────────────────
+def eval_fstring(user):
+    eval(f"print({user})")                          # TRIGGER python.security.eval-fstring (+ eval-usage)
+
+def exec_fstring(code):
+    exec(f"result = {code}")                        # TRIGGER python.security.exec-fstring (+ exec-usage)
+
 # ── Hardcoded Secrets ────────────────────────────────────
 API_KEY = "sk-1234567890abcdef"                     # TRIGGER python.security.hardcoded-secret
 DATABASE_PASSWORD = "hunter2"                       # TRIGGER python.security.hardcoded-secret

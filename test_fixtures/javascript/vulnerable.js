@@ -54,6 +54,16 @@ function startServer() {
     http.createServer(handler);                     // TRIGGER javascript.security.http-createserver
 }
 
+// ── Tier 1: Precise Weak Cryptography ───────────────────
+function hashSha1(data) {
+    return crypto.createHash("sha1");               // TRIGGER javascript.security.crypto-createhash-sha1 (+ crypto-createhash-md5)
+}
+
+// ── Tier 1: Code Injection via Template Literal ─────────
+function evalTemplate(code) {
+    eval(`run(${code})`);                           // TRIGGER javascript.security.eval-template (+ eval-usage)
+}
+
 // ── Hardcoded Secrets ───────────────────────────────────
 const API_KEY = "sk-1234567890abcdef";              // TRIGGER javascript.security.hardcoded-secret
 const DB_PASSWORD = "hunter2";                      // TRIGGER javascript.security.hardcoded-secret

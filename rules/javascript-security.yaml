@@ -71,6 +71,26 @@ rules:
     languages: [javascript]
     severity: INFO
 
+  # ── Tier 1: Precise Weak Cryptography ──────────────────
+  - id: javascript.security.crypto-createhash-md5-precise
+    pattern: crypto.createHash("md5")
+    message: MD5 is cryptographically broken — use SHA-256 or stronger
+    languages: [javascript]
+    severity: WARNING
+
+  - id: javascript.security.crypto-createhash-sha1
+    pattern: crypto.createHash("sha1")
+    message: SHA-1 is cryptographically weak — use SHA-256 or stronger
+    languages: [javascript]
+    severity: WARNING
+
+  # ── Tier 1: Code Injection via Template Literal ────────
+  - id: javascript.security.eval-template
+    pattern: eval(f"...")
+    message: eval() with template literal enables code injection
+    languages: [javascript]
+    severity: ERROR
+
   # ── Hardcoded Secrets ──────────────────────────────────
   - id: javascript.security.hardcoded-secret
     pattern: $KEY = "..."

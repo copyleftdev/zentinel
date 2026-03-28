@@ -25,7 +25,7 @@ Phase 1 MVP — **Complete**. Tier 1 (local reasoning) — **Complete**. All 9 c
 | H6 | Arena allocators | CONFIRMED (2/2) | 1.58x faster than page_allocator |
 | H7 | Zentinel vs Semgrep | CONFIRMED (2/2) | 4,704x faster (332μs vs 1,562ms), same 21 findings from 20 rules |
 | H8 | Rule system (YAML→match→findings) | CONFIRMED (7/7) | End-to-end: parse 5 rules, match Python+JS, cross-language |
-| H9 | Ground truth validation | CONFIRMED (8/8) | 36-rule corpus, 4 fixtures, zero FP/FN |
+| H9 | Ground truth validation | CONFIRMED (8/8) | 46-rule corpus, 4 fixtures, zero FP/FN |
 | H10 | Indexed matcher (SIMD + ChildIndex) | CONFIRMED (2/2) | 20x faster, atom→rules dispatch + SIMD hash + O(1) child lookups |
 | H11 | Literal classification (LiteralKind) | CONFIRMED (13/13) | string/int/float/bool/null/regex/collection across Python+JS |
 | H12 | Assignment precision (Tier 1) | CONFIRMED (8/8) | `$KEY = "..."` rejects int/bool/null RHS; 62.5% FP reduction |
@@ -54,8 +54,8 @@ zentinel/
 │   ├── treesitter.zig     # Zig bindings for tree-sitter C API
 │   └── zir.zig            # ZIR type definitions (Node, Kind, AtomTable, ZirTree)
 ├── rules/                 # Built-in rule corpus
-│   ├── python-security.yaml      # 20 Python security rules
-│   ├── javascript-security.yaml  # 13 JavaScript security rules
+│   ├── python-security.yaml      # 27 Python security rules (20 Tier 0 + 7 Tier 1)
+│   ├── javascript-security.yaml  # 16 JavaScript security rules (13 Tier 0 + 3 Tier 1)
 │   └── universal-security.yaml   # 3 cross-language rules
 ├── hypothesis/            # Hypothesis test executables (h1–h14)
 ├── test_fixtures/
