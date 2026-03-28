@@ -55,7 +55,9 @@ jobs:
           done
 
       - name: Validate rule coverage
-        run: python3 scripts/validate_rule_coverage.py
+        run: |
+          pip install pyyaml --quiet
+          python3 scripts/validate_rule_coverage.py
 
       - name: Package binary
         run: |

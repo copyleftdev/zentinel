@@ -32,12 +32,14 @@ jobs:
             zig build run-$h 2>&1 | tail -5
           done
 
-      - name: Run taint tests (H15-H17)
+      - name: Run taint + columnar tests (H15-H18)
         run: |
-          for h in h15_taint_tracking h16_crossfile_taint h17_custom_sources; do
+          for h in h15_taint_tracking h16_crossfile_taint h17_custom_sources h18_columnar_zir; do
             echo "=== $h ==="
             zig build run-$h 2>&1 | tail -5
           done
 
       - name: Validate rule coverage
-        run: python3 scripts/validate_rule_coverage.py
+        run: |
+          pip install pyyaml --quiet
+          python3 scripts/validate_rule_coverage.py
