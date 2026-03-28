@@ -329,6 +329,11 @@ pub fn matchWithIndex(
                                     if (!hasDescendantLiteralKindIndexed(tree, ci, nid, required_lk, 3)) continue;
                                 }
 
+                                // Tier 1: check LHS name hint — identifier must look like a secret
+                                if (pattern.lhs_name_hint != null) {
+                                    if (!lhsMatchesSecretHintIndexed(tree, ci, nid)) continue;
+                                }
+
                                 if (node.parent) |pid| {
                                     if (tree.nodes.items[pid].kind == .assignment) continue;
                                 }
@@ -430,6 +435,58 @@ fn hasDescendantInner(tree: *const zir.ZirTree, ci: *const ChildIndex, parent_id
 /// Tier 1: Check if a node has a descendant literal of a specific LiteralKind, using ChildIndex.
 fn hasDescendantLiteralKindIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, parent_id: zir.NodeId, lk: zir.LiteralKind, max_depth: u32) bool {
     return hasDescendantLiteralKindInner(tree, ci, parent_id, lk, max_depth, 0);
+}
+
+/// Check if the LHS identifier of an assignment looks like a secret variable name.
+/// Searches up to depth 2 to handle JS lexical_declaration → variable_declarator → identifier.
+fn lhsMatchesSecretHintIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, assign_id: zir.NodeId) bool {
+    const SECRET_KEYWORDS = [_][]const u8{
+        "secret", "key", "password", "passwd", "token", "credential",
+        "auth", "api_key", "apikey", "private", "cert",
+    };
+
+    // Check direct children and grandchildren (depth 2)
+    for (ci.children(assign_id)) |child_id| {
+        const child = tree.nodes.items[child_id];
+        if (child.kind == .identifier) {
+            if (child.atom) |aid| {
+                const name = tree.atoms.get(aid);
+                for (SECRET_KEYWORDS) |kw| {
+                    if (containsInsensitive(name, kw)) return true;
+                }
+            }
+            return false;
+        }
+        // Check grandchildren (JS: lexical_declaration → variable_declarator → identifier)
+        for (ci.children(child_id)) |gc_id| {
+            const gc = tree.nodes.items[gc_id];
+            if (gc.kind == .identifier) {
+                if (gc.atom) |aid| {
+                    const name = tree.atoms.get(aid);
+                    for (SECRET_KEYWORDS) |kw| {
+                        if (containsInsensitive(name, kw)) return true;
+                    }
+                }
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+fn containsInsensitive(haystack: []const u8, needle: []const u8) bool {
+    if (needle.len > haystack.len) return false;
+    var i: usize = 0;
+    while (i + needle.len <= haystack.len) : (i += 1) {
+        var match = true;
+        for (0..needle.len) |j| {
+            const h = if (haystack[i + j] >= 'A' and haystack[i + j] <= 'Z') haystack[i + j] + 32 else haystack[i + j];
+            const n = if (needle[j] >= 'A' and needle[j] <= 'Z') needle[j] + 32 else needle[j];
+            if (h != n) { match = false; break; }
+        }
+        if (match) return true;
+    }
+    return false;
 }
 
 fn hasDescendantLiteralKindInner(tree: *const zir.ZirTree, ci: *const ChildIndex, parent_id: zir.NodeId, lk: zir.LiteralKind, max_depth: u32, depth: u32) bool {

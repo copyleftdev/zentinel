@@ -36,6 +36,7 @@ pub const AssignmentPattern = struct {
     lhs_is_metavar: bool, // $KEY → true
     rhs_is_string_literal: bool, // "..." → true (legacy, kept for backward compat)
     rhs_literal_kind: ?zir.LiteralKind = null, // Tier 1: require specific literal type
+    lhs_name_hint: ?[]const u8 = null, // Tier 1: metavar name hint (e.g., "KEY" from $KEY)
 };
 
 pub const MemberCallPattern = struct {
@@ -225,10 +226,21 @@ pub fn compilePattern(pattern_source: []const u8) CompileError!CompiledPattern {
     // Check for assignment pattern: contains "=" not inside parens
     if (detectAssignment(src)) {
         const has_string_rhs = std.mem.indexOf(u8, src, "\"...\"") != null;
+        const is_metavar = src.len > 0 and src[0] == '$';
+
+        // Extract metavar name hint: "$KEY = ..." → "KEY"
+        var name_hint: ?[]const u8 = null;
+        if (is_metavar) {
+            const eq_pos = std.mem.indexOfScalar(u8, src, '=') orelse src.len;
+            const hint = std.mem.trim(u8, src[1..eq_pos], &[_]u8{ ' ', '\t' });
+            if (hint.len > 0) name_hint = hint;
+        }
+
         return .{ .assignment = .{
-            .lhs_is_metavar = src.len > 0 and src[0] == '$',
+            .lhs_is_metavar = is_metavar,
             .rhs_is_string_literal = has_string_rhs,
             .rhs_literal_kind = if (has_string_rhs) .string else null,
+            .lhs_name_hint = name_hint,
         } };
     }
 

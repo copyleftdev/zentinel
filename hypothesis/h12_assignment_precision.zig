@@ -146,8 +146,8 @@ pub fn main() !void {
     // Test 1: Matches string assignments
     try results.append(.{
         .name = "matches_string_assignments",
-        .passed = linear_findings.len == 3,
-        .detail = try std.fmt.allocPrint(alloc, "{d} findings (expected 3: API_KEY, DB_PASSWORD, name)", .{linear_findings.len}),
+        .passed = linear_findings.len == 2,
+        .detail = try std.fmt.allocPrint(alloc, "{d} findings (expected 2: API_KEY, DB_PASSWORD)", .{linear_findings.len}),
     });
 
     // Test 2: Does not match integer assignment (count = 42)
