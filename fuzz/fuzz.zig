@@ -25,6 +25,7 @@ const rule = @import("rule");
 const matcher = @import("matcher");
 const fast_matcher = @import("fast_matcher");
 const taint = @import("taint");
+const columnar = @import("columnar");
 const cache = @import("cache");
 
 const stderr = std.io.getStdErr().writer();
@@ -109,6 +110,7 @@ fn getTarget(name: []const u8) ?TargetFn {
     if (std.mem.eql(u8, name, "pattern")) return fuzzPattern;
     if (std.mem.eql(u8, name, "matcher")) return fuzzMatcher;
     if (std.mem.eql(u8, name, "taintsource")) return fuzzTaintSource;
+    if (std.mem.eql(u8, name, "columnar")) return fuzzColumnar;
     if (std.mem.eql(u8, name, "cache")) return fuzzCache;
     if (std.mem.eql(u8, name, "roundtrip")) return fuzzRoundtrip;
     if (std.mem.eql(u8, name, "mapkind")) return fuzzMapKind;
@@ -426,6 +428,15 @@ fn fuzzTaintSource(input: []const u8) void {
     }
 }
 
+/// Fuzz columnar deserializer: random bytes → deserialize attempt. Must not crash.
+fn fuzzColumnar(input: []const u8) void {
+    if (input.len == 0 or input.len > 512 * 1024) return;
+    if (columnar.deserialize(input, alloc)) |ct| {
+        var ct_mut = ct;
+        ct_mut.deinit();
+    } else |_| {}
+}
+
 // ── Billion Campaign ──
 
 fn runBillionCampaign() !void {
@@ -448,6 +459,7 @@ fn runBillionCampaign() !void {
         .{ .name = "patternfast", .func = fuzzPatternFast, .count = 200_000_000 },
         .{ .name = "childindex", .func = fuzzChildIndex, .count = 100_000_000 },
         .{ .name = "taintsource", .func = fuzzTaintSource, .count = 100_000_000 },
+        .{ .name = "columnar", .func = fuzzColumnar, .count = 100_000_000 },
         .{ .name = "pattern", .func = fuzzPatternFast, .count = 50_000_000 },
         .{ .name = "rules", .func = fuzzRules, .count = 50_000_000 },
     };

@@ -231,6 +231,7 @@ pub fn build(b: *std.Build) void {
     fuzz_exe.root_module.addImport("fast_matcher", fast_matcher_mod);
     fuzz_exe.root_module.addImport("taint", taint_mod);
     fuzz_exe.root_module.addImport("crossfile", crossfile_mod);
+    fuzz_exe.root_module.addImport("columnar", columnar_mod);
     fuzz_exe.root_module.addImport("cache", cache_mod);
     b.installArtifact(fuzz_exe);
 
