@@ -1,6 +1,10 @@
-# Zentinel
+<p align="center">
+  <img src="media/logo.png" alt="Zentinel" width="200">
+</p>
 
-**Static analysis that doesn't waste your time.**
+<h1 align="center">Zentinel</h1>
+
+<p align="center"><strong>Static analysis that doesn't waste your time.</strong></p>
 
 Zentinel scans your code for security issues in microseconds, not seconds. One binary. No runtime. No config files to debug. Point it at your code, get findings.
 
@@ -16,7 +20,7 @@ Zentinel scans your code for security issues in microseconds, not seconds. One b
 
 ## What it does
 
-Zentinel reads your Python and JavaScript, parses it into a language-agnostic representation, and matches security rules against the structure. It finds dangerous patterns — `eval()`, command injection, hardcoded secrets, insecure crypto — and tells you exactly where.
+Zentinel reads your Python, JavaScript, Go, and TypeScript, parses it into a language-agnostic representation, and matches security rules against the structure. It finds dangerous patterns — `eval()`, command injection, hardcoded secrets, insecure crypto, tainted data flows — and tells you exactly where.
 
 ```
 $ zent scan src/ --config rules/python-security.yaml
@@ -159,9 +163,15 @@ Source → tree-sitter → CST → Normalizer → ZIR → Prefilter → Matcher 
 
 ## Status
 
-Phase 1 MVP complete. Python and JavaScript supported. Tier 0 structural matching (node kinds + identifiers). The scanner works, the rules work, the output works.
+Phase 1 MVP and Tier 1/2 complete. Four languages supported: Python, JavaScript, Go, TypeScript. Three analysis tiers operational:
 
-What's next: more languages, taint analysis (Tier 2), cross-file analysis (Tier 3), LSP integration.
+- **Tier 0** — Structural matching (node kinds + identifiers)
+- **Tier 1** — Local reasoning (literal classification, argument constraints, f-string detection)
+- **Tier 2** — Intra-procedural taint tracking (parameter → variable → sink data flow)
+
+64 security rules. 15 hypothesis tests confirmed. Zero false positives on ground truth.
+
+What's next: cross-file analysis (Tier 3), LSP integration.
 
 ---
 
