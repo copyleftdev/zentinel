@@ -8,23 +8,28 @@ nav_order: 2
 
 ## Install
 
-### From release (recommended)
-
-Download the latest binary for your platform from [Releases](https://github.com/copyleftdev/zentinel/releases).
+### Quick install (Linux / macOS)
 
 ```bash
-# Linux x86_64
-curl -LO https://github.com/copyleftdev/zentinel/releases/latest/download/zent-linux-x86_64.tar.gz
-tar xzf zent-linux-x86_64.tar.gz
-chmod +x zent-linux-x86_64
-sudo mv zent-linux-x86_64 /usr/local/bin/zent
-
-# macOS Apple Silicon
-curl -LO https://github.com/copyleftdev/zentinel/releases/latest/download/zent-macos-aarch64.tar.gz
-tar xzf zent-macos-aarch64.tar.gz
-chmod +x zent-macos-aarch64
-sudo mv zent-macos-aarch64 /usr/local/bin/zent
+curl -fsSL https://raw.githubusercontent.com/copyleftdev/zentinel/main/install.sh | sh
 ```
+
+### Homebrew (macOS)
+
+```bash
+brew install copyleftdev/tap/zentinel
+```
+
+### Download binary
+
+Grab the latest from [Releases](https://github.com/copyleftdev/zentinel/releases/latest):
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `zent-linux-x86_64.tar.gz` |
+| Linux ARM64 | `zent-linux-aarch64.tar.gz` |
+| macOS x86_64 | `zent-macos-x86_64.tar.gz` |
+| macOS ARM64 | `zent-macos-aarch64.tar.gz` |
 
 ### From source
 
@@ -34,7 +39,7 @@ Requires [Zig 0.14](https://ziglang.org/download/) and `libtree-sitter-dev`.
 git clone https://github.com/copyleftdev/zentinel.git
 cd zentinel
 zig build -Doptimize=ReleaseFast
-# Binary at zig-out/bin/zent
+# Binary at zig-out/bin/zent (7MB, zero dependencies)
 ```
 
 ## Your first scan

@@ -49,32 +49,38 @@ jobs:
 
       - name: Run hypothesis tests
         run: |
-          # Run each hypothesis individually, skip H7 (requires semgrep)
-          for h in h1_treesitter_ffi h2_zir_normalization h3_error_tolerance h4_pattern_matching h5_prefilter h6_arena_benchmark h8_rule_system h9_ground_truth h10_indexed_matcher; do
+          for h in h1_treesitter_ffi h2_zir_normalization h3_error_tolerance h4_pattern_matching h5_prefilter h6_arena_benchmark h8_rule_system h9_ground_truth h10_indexed_matcher h11_literal_classification h12_assignment_precision h13_argument_constraints h14_tier_enforcement h15_taint_tracking h16_crossfile_taint h17_custom_sources h18_columnar_zir; do
             echo "── $h ──"
-            zig build run-$h
+            zig build run-$h 2>&1 | tail -3
           done
+
+      - name: Validate rule coverage
+        run: python3 scripts/validate_rule_coverage.py
 
       - name: Package binary
         run: |
-          cp zig-out/bin/zent ${{ matrix.artifact }}
-          chmod +x ${{ matrix.artifact }}
+          mkdir -p dist
+          cp zig-out/bin/zent dist/${{ matrix.artifact }}
+          chmod +x dist/${{ matrix.artifact }}
+          cd dist
           tar czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
-          sha256sum ${{ matrix.artifact }}.tar.gz > ${{ matrix.artifact }}.tar.gz.sha256
+          sha256sum ${{ matrix.artifact }}.tar.gz > ${{ matrix.artifact }}.tar.gz.sha256 || shasum -a 256 ${{ matrix.artifact }}.tar.gz > ${{ matrix.artifact }}.tar.gz.sha256
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: |
-            ${{ matrix.artifact }}.tar.gz
-            ${{ matrix.artifact }}.tar.gz.sha256
+            dist/${{ matrix.artifact }}.tar.gz
+            dist/${{ matrix.artifact }}.tar.gz.sha256
 
   release:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -84,6 +90,20 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          body: |
+            ## Install
+
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/copyleftdev/zentinel/main/install.sh | sh
+            ```
+
+            Or download the binary for your platform below.
+
+            ## What's included
+
+            - `zent scan` — CLI scanner (422 rules, 4 languages, 4 analysis tiers)
+            - `zent serve` — Web dashboard with OWASP mapping
+            - Rules directory with 68 hand-written + 354 community rules
           files: |
             artifacts/*.tar.gz
             artifacts/*.sha256

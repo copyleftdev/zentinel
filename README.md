@@ -61,9 +61,32 @@ Zentinel finds _more_ issues in _less_ time with _nothing_ to install.
 
 The matching engine compiles rules into a dispatch table indexed by atom hash, then scans the syntax tree once. SIMD vector operations compare 4 rule hashes per cycle. A parent-child adjacency index makes tree lookups O(1). Files that haven't changed are cached and skip parsing entirely.
 
-## How to use it
+## Install
 
-### Build
+### Quick install (Linux / macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/copyleftdev/zentinel/main/install.sh | sh
+```
+
+### Homebrew (macOS)
+
+```bash
+brew install copyleftdev/tap/zentinel
+```
+
+### Download binary
+
+Grab the latest release for your platform from [GitHub Releases](https://github.com/copyleftdev/zentinel/releases/latest).
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `zent-linux-x86_64.tar.gz` |
+| Linux ARM64 | `zent-linux-aarch64.tar.gz` |
+| macOS x86_64 | `zent-macos-x86_64.tar.gz` |
+| macOS ARM64 | `zent-macos-aarch64.tar.gz` |
+
+### Build from source
 
 Requires [Zig 0.14](https://ziglang.org/download/) and a system `tree-sitter` library (0.22+).
 
@@ -71,7 +94,7 @@ Requires [Zig 0.14](https://ziglang.org/download/) and a system `tree-sitter` li
 zig build -Doptimize=ReleaseFast
 ```
 
-That's it. One binary at `zig-out/bin/zent`.
+One binary at `zig-out/bin/zent` (7MB, zero dependencies).
 
 ### Scan
 
