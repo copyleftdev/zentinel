@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.2.1 — 2026-03-27
+
+Custom taint sources, fuzz hardening, and polish.
+
+### Custom Source/Sink Configuration
+- Rules can now specify `sources:` to define where tainted data enters
+- Configurable taint sources: `request.args.get(...)`, `input(...)`, `sys.argv`, etc.
+- When sources are specified, taint seeds from matching calls instead of function parameters
+- 4 new Python taint rules: sql-injection, exec, eval, os.system with custom sources
+- Structural matchers now skip tier>=2 rules (handled exclusively by taint engine)
+
+### Fuzz Campaign (v0.2.1)
+- 1.1 billion inputs across 7 targets, 0 crashes
+- New target: `taintsource` — 100M inputs fuzzing source pattern parser
+- `mapkind` now fuzzes all 4 languages (Python, JS, Go, TypeScript)
+- Updated structure injection with Go/TS keywords and taint patterns
+
+### Testing
+- H17: Custom taint source/sink configuration (6/6 CONFIRMED)
+- 17/17 hypotheses confirmed total
+
+---
+
 ## v0.2.0 — 2026-03-27
 
 Tiered analysis engine and multi-language support.

@@ -11,7 +11,7 @@ Zentinel scans your code for security issues in microseconds, not seconds. One b
 [![Zig](https://img.shields.io/badge/Built_with-Zig_0.14-f7a41d?style=flat-square&logo=zig&logoColor=white)](https://ziglang.org)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square)](LICENSE)
 [![Binary Size](https://img.shields.io/badge/Binary-2.7MB-brightgreen?style=flat-square)]()
-[![Fuzz Tested](https://img.shields.io/badge/Fuzz_Tested-1_Billion_Inputs-blueviolet?style=flat-square)]()
+[![Fuzz Tested](https://img.shields.io/badge/Fuzz_Tested-1.1_Billion_Inputs-blueviolet?style=flat-square)]()
 [![SARIF](https://img.shields.io/badge/Output-SARIF_v2.1-orange?style=flat-square)]()
 [![Downloads](https://img.shields.io/github/downloads/copyleftdev/zentinel/total?style=flat-square&label=Downloads&color=brightgreen)](https://github.com/copyleftdev/zentinel/releases)
 [![Release](https://img.shields.io/github/v/release/copyleftdev/zentinel?style=flat-square&label=Release)](https://github.com/copyleftdev/zentinel/releases/latest)
@@ -87,25 +87,29 @@ Exit code 0 = clean. Exit code 1 = findings.
 
 ### Rules
 
-Zentinel ships with 36 security rules across three sets:
+Zentinel ships with 68 security rules across six sets:
 
 | Rule Set | Rules | Languages |
 |----------|-------|-----------|
-| `rules/python-security.yaml` | 20 | Python |
-| `rules/javascript-security.yaml` | 13 | JavaScript |
-| `rules/universal-security.yaml` | 3 | Both |
+| `rules/python-security.yaml` | 31 | Python |
+| `rules/javascript-security.yaml` | 16 | JavaScript |
+| `rules/typescript-security.yaml` | 14 | TypeScript |
+| `rules/go-security.yaml` | 4 | Go |
+| `rules/universal-security.yaml` | 3 | All |
 
-Covers: command injection, code injection (`eval`/`exec`), unsafe deserialization (`pickle`, `yaml.load`), weak cryptography (MD5, SHA-1), hardcoded secrets, XSS (`document.write`), insecure network (plain HTTP), temp file races.
+Covers: command injection, code injection (`eval`/`exec`), unsafe deserialization (`pickle`, `yaml.load`), weak cryptography (MD5, SHA-1), hardcoded secrets, XSS (`document.write`), insecure network (plain HTTP), temp file races, SQL injection via tainted data flow.
 
-Rules are Semgrep-compatible YAML:
+Rules are Semgrep-compatible YAML. Tier 2 rules support custom taint sources:
 
 ```yaml
 rules:
-  - id: dangerous-eval
-    pattern: eval(...)
-    message: eval() can execute arbitrary code
-    languages: [python, javascript]
+  - id: sql-injection
+    pattern: cursor.execute(...)
+    sources: [request.args.get(...), input(...)]
+    message: SQL injection — user input flows to database query
+    languages: [python]
     severity: ERROR
+    tier: 2
 ```
 
 Write your own. Drop them in a YAML file. No compilation step.
@@ -114,7 +118,7 @@ Write your own. Drop them in a YAML file. No compilation step.
 
 ### Hypothesis-driven development
 
-Every architectural decision was validated before building on it. 10 hypotheses, all confirmed:
+Every architectural decision was validated before building on it. 17 hypotheses, all confirmed:
 
 | # | What we proved | Result |
 |---|---------------|--------|
@@ -128,50 +132,54 @@ Every architectural decision was validated before building on it. 10 hypotheses,
 | H8 | End-to-end rule system (YAML → match → findings) | 7/7 |
 | H9 | Ground truth: zero false positives, zero false negatives | 8/8 |
 | H10 | Indexed SIMD matcher is 20x faster than linear | 2/2 |
+| H11 | Literal classification across Python + JS | 13/13 |
+| H12 | Assignment precision (62.5% FP reduction) | 8/8 |
+| H13 | Argument constraints (keyword, value, f-string) | 6/6 |
+| H14 | Tier enforcement + cost boundaries | 5/5 |
+| H15 | Intra-procedural taint tracking | 8/8 |
+| H16 | Cross-file taint tracking | 5/5 |
+| H17 | Custom taint source/sink configuration | 6/6 |
 
 ### Ground truth validation
 
-Four deterministic test fixtures — two vulnerable, two safe — with exact expected finding counts. Every rule fires where it should. No rule fires where it shouldn't. Verified on every build.
+Eight deterministic test fixtures across four languages — vulnerable and safe variants — with exact expected finding counts. Every rule fires where it should. No rule fires where it shouldn't. Verified on every build.
 
-### 1 billion fuzz inputs
+### 1.1 billion fuzz inputs
 
-Every hot path was fuzzed with 1,000,000,000 randomly generated inputs under Zig's ReleaseSafe mode (bounds checking, overflow detection, alignment validation all active).
+Every hot path was fuzzed with 1,100,000,000 randomly generated inputs under Zig's ReleaseSafe mode (bounds checking, overflow detection, alignment validation all active).
 
 | Target | Inputs | What it tests |
 |--------|--------|--------------|
-| mapkind | 300M | Node type → Kind dispatch |
+| mapkind | 300M | Node type → Kind dispatch (4 languages) |
 | simd | 300M | SIMD vector hash comparison |
 | patternfast | 200M | Pattern compiler |
 | childindex | 100M | Parent→children adjacency index |
+| taintsource | 100M | Taint source pattern parser |
 | pattern | 50M | Full pattern compilation |
 | rules | 50M | YAML parser |
 
-**Result: 0 crashes.** Two bugs were found and fixed during the campaign (both in the YAML parser, both edge cases with truncated input). The clean run completed with zero failures.
+**Result: 0 crashes.** Two campaigns run (v0.1.0 and v0.2.1). Bugs found and fixed in v0.1.0 (YAML parser edge cases). Clean run on current codebase with zero failures.
 
 ## Architecture
 
 ```
 Source → tree-sitter → CST → Normalizer → ZIR → Prefilter → Matcher → Findings → SARIF
-                                                     ↑
-                                              Rule Index (SIMD)
+                                                     ↑              ↑
+                                              Rule Index (SIMD)   Taint Engine
+                                                                    ↑
+                                                              Cross-File Index
 ```
-
-- **ZIR** (Zentinel Intermediate Representation) — language-agnostic syntax tree. All matching operates on ZIR, never on raw parse trees. Adding a new language means adding node type mappings, nothing else.
-- **Prefilter** — checks file signatures against rule requirements. If a file doesn't contain the atoms a rule needs, the rule is skipped entirely.
-- **Indexed matcher** — rules compiled into a dispatch table keyed by atom hash. One pass over the tree, O(1) lookup per node. SIMD compares 4 hashes per cycle.
-- **Incremental cache** — content-addressed. Same file + same rules = cached findings. No re-parse.
 
 ## Status
 
-Phase 1 MVP and Tier 1/2 complete. Four languages supported: Python, JavaScript, Go, TypeScript. Three analysis tiers operational:
+Four languages. Four analysis tiers. 68 security rules. 17 hypotheses confirmed.
 
 - **Tier 0** — Structural matching (node kinds + identifiers)
 - **Tier 1** — Local reasoning (literal classification, argument constraints, f-string detection)
-- **Tier 2** — Intra-procedural taint tracking (parameter → variable → sink data flow)
+- **Tier 2** — Intra-procedural taint tracking (parameter → variable → sink, configurable sources)
+- **Tier 3** — Cross-file taint tracking (import → call → sink across module boundaries)
 
-64 security rules. 15 hypothesis tests confirmed. Zero false positives on ground truth.
-
-What's next: more languages, deeper taint propagation, custom source/sink configuration.
+What's next: more languages, deeper taint propagation (multi-hop cross-file), framework-aware sources.
 
 ---
 
