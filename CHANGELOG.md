@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.4.1 — 2026-03-28
+
+Entropy + pattern-based secret detection.
+
+### Secret Detection Engine (src/secrets.zig)
+- Two-gate system: variable name must contain keyword AND value must look like a secret
+- Shannon entropy analysis with tiered thresholds (3.5 for key/token, 2.0 for password/secret)
+- 30+ known secret patterns: AWS (AKIA), GitHub (ghp_), Stripe (sk_live_), Slack (xoxb-),
+  OpenAI (sk-), JWT, long hex, base64, and more
+- Results: 86% FP reduction on Kubernetes (496 → ~70), 99% on SUSE/connect-ng (131 → 1)
+
+### Validation
+- Tested against Kubernetes (12K files), Podman (1.4K files), SUSE/connect-ng (140 files)
+- H9: 8/8, H12: 8/8 (zero regressions)
+
+---
+
 ## v0.4.0 — 2026-03-28
 
 Columnar ZIR storage and 1.2 billion fuzz campaign.
