@@ -281,5 +281,7 @@ fn detectLanguage(path: []const u8) ?LangInfo {
     if (std.mem.eql(u8, ext, ".js")) return .{ .name = "javascript", .ts_lang = .javascript };
     if (std.mem.eql(u8, ext, ".jsx")) return .{ .name = "javascript", .ts_lang = .javascript };
     if (std.mem.eql(u8, ext, ".go")) return .{ .name = "go", .ts_lang = .go };
+    if (std.mem.eql(u8, ext, ".ts")) return .{ .name = "typescript", .ts_lang = .typescript };
+    if (std.mem.eql(u8, ext, ".tsx")) return .{ .name = "typescript", .ts_lang = .typescript };
     return null;
 }

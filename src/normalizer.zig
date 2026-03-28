@@ -11,6 +11,7 @@ pub fn mapKind(node_type: []const u8, lang: ts.Language) zir.Kind {
         .python => mapKindPython(node_type),
         .javascript => mapKindJavaScript(node_type),
         .go => mapKindGo(node_type),
+        .typescript => mapKindTypeScript(node_type),
     };
 }
 
@@ -132,6 +133,23 @@ fn mapKindJavaScript(t: []const u8) zir.Kind {
     return .unknown;
 }
 
+fn mapKindTypeScript(t: []const u8) zir.Kind {
+    // TypeScript-specific types (not in JavaScript)
+    if (eq(t, "interface_declaration") or eq(t, "abstract_class_declaration")) return .class;
+    if (eq(t, "enum_declaration")) return .class;
+    if (eq(t, "type_alias_declaration")) return .assignment;
+    if (eq(t, "module")) return .module;
+    if (eq(t, "nested_identifier")) return .member_access;
+    if (eq(t, "type_identifier")) return .identifier;
+    if (eq(t, "required_parameter") or eq(t, "optional_parameter")) return .parameter;
+    if (eq(t, "public_field_definition")) return .assignment;
+    if (eq(t, "method_signature") or eq(t, "function_signature")) return .function;
+    if (eq(t, "as_expression") or eq(t, "satisfies_expression") or eq(t, "non_null_expression")) return .expression_stmt;
+    if (eq(t, "type_assertion")) return .expression_stmt;
+    // Fall through to JavaScript mappings for shared types
+    return mapKindJavaScript(t);
+}
+
 fn mapKindGo(t: []const u8) zir.Kind {
     // Module
     if (eq(t, "source_file")) return .module;
@@ -189,7 +207,7 @@ fn eq(a: []const u8, b: []const u8) bool {
 pub fn classifyLiteral(node_type: []const u8, lang: ts.Language) zir.LiteralKind {
     return switch (lang) {
         .python => classifyLiteralPython(node_type),
-        .javascript => classifyLiteralJavaScript(node_type),
+        .javascript, .typescript => classifyLiteralJavaScript(node_type),
         .go => classifyLiteralGo(node_type),
     };
 }

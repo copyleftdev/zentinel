@@ -8,7 +8,7 @@ Zentinel is a **Semantic Code Intelligence Engine (SCIE)** — Semgrep rebuilt f
 
 Phase 1 MVP — **Complete**. Tier 1 (local reasoning) — **Complete**. All 9 components implemented. 14/14 hypotheses confirmed. 10/12 benchmarks passing.
 
-- **Language:** Zig 0.14.0 (scanning Python, JavaScript, Go)
+- **Language:** Zig 0.14.0 (scanning Python, JavaScript, Go, TypeScript)
 - **Lines of code:** ~4,200 (8 src modules + 14 hypothesis tests)
 - **Test fixtures:** Python + JavaScript (clean + broken variants)
 - **Hypothesis tests:** 14/14 confirmed
@@ -57,6 +57,7 @@ zentinel/
 │   ├── python-security.yaml      # 27 Python security rules (20 Tier 0 + 7 Tier 1)
 │   ├── javascript-security.yaml  # 16 JavaScript security rules (13 Tier 0 + 3 Tier 1)
 │   ├── go-security.yaml          # 4 Go security rules
+│   ├── typescript-security.yaml  # 14 TypeScript security rules (mirrors JS + Tier 1)
 │   └── universal-security.yaml   # 3 cross-language rules
 ├── hypothesis/            # Hypothesis test executables (h1–h14)
 ├── test_fixtures/
@@ -68,6 +69,7 @@ zentinel/
 │   ├── tree-sitter-python/     # v0.23.5 (ABI 14)
 │   ├── tree-sitter-javascript/ # v0.23.1 (ABI 14)
 │   ├── tree-sitter-go/         # v0.23.4 (ABI 14)
+│   ├── tree-sitter-typescript/ # v0.23.2 (ABI 14)
 │   └── tree-sitter-core/       # (unused — using system lib 0.22.6)
 └── .claude/               # Agentic development configuration
 ```

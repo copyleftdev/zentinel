@@ -1,0 +1,92 @@
+rules:
+  # ── Code Injection ─────────────────────────────────────
+  - id: typescript.security.eval-usage
+    pattern: eval(...)
+    message: Use of eval() can lead to code injection — avoid evaluating untrusted strings
+    languages: [typescript]
+    severity: ERROR
+
+  - id: typescript.security.function-constructor
+    pattern: Function(...)
+    message: new Function() is equivalent to eval() — avoid with untrusted input
+    languages: [typescript]
+    severity: ERROR
+
+  - id: typescript.security.settimeout-string
+    pattern: setTimeout(...)
+    message: setTimeout() with a string argument acts like eval() — pass a function instead
+    languages: [typescript]
+    severity: WARNING
+
+  - id: typescript.security.setinterval-string
+    pattern: setInterval(...)
+    message: setInterval() with a string argument acts like eval() — pass a function instead
+    languages: [typescript]
+    severity: WARNING
+
+  # ── Command Injection ──────────────────────────────────
+  - id: typescript.security.exec-usage
+    pattern: exec(...)
+    message: Use of exec() can lead to command injection — validate and sanitize input
+    languages: [typescript]
+    severity: ERROR
+
+  - id: typescript.security.child-process-exec
+    pattern: child_process.exec(...)
+    message: child_process.exec() is vulnerable to command injection — use execFile() instead
+    languages: [typescript]
+    severity: ERROR
+
+  - id: typescript.security.child-process-spawn
+    pattern: child_process.spawn(...)
+    message: Ensure arguments to child_process.spawn() are sanitized
+    languages: [typescript]
+    severity: WARNING
+
+  # ── XSS / DOM ─────────────────────────────────────────
+  - id: typescript.security.innerhtml
+    pattern: document.write(...)
+    message: document.write() can lead to XSS — use textContent or DOM APIs instead
+    languages: [typescript]
+    severity: ERROR
+
+  # ── Cryptography ───────────────────────────────────────
+  - id: typescript.security.crypto-createhash-md5
+    pattern: crypto.createHash(...)
+    message: Verify hash algorithm is not MD5 or SHA-1 — use SHA-256 or stronger
+    languages: [typescript]
+    severity: INFO
+
+  # ── Tier 1: Precise Weak Cryptography ──────────────────
+  - id: typescript.security.crypto-createhash-md5-precise
+    pattern: crypto.createHash("md5")
+    message: MD5 is cryptographically broken — use SHA-256 or stronger
+    languages: [typescript]
+    severity: WARNING
+
+  - id: typescript.security.crypto-createhash-sha1
+    pattern: crypto.createHash("sha1")
+    message: SHA-1 is cryptographically weak — use SHA-256 or stronger
+    languages: [typescript]
+    severity: WARNING
+
+  # ── Tier 1: Code Injection via Template Literal ────────
+  - id: typescript.security.eval-template
+    pattern: eval(f"...")
+    message: eval() with template literal enables code injection
+    languages: [typescript]
+    severity: ERROR
+
+  # ── Hardcoded Secrets ──────────────────────────────────
+  - id: typescript.security.hardcoded-secret
+    pattern: $KEY = "..."
+    message: Possible hardcoded secret — use environment variables or a secrets manager
+    languages: [typescript]
+    severity: WARNING
+
+  # ── Dangerous Patterns ─────────────────────────────────
+  - id: typescript.security.process-exit
+    pattern: process.exit(...)
+    message: process.exit() skips cleanup handlers — ensure graceful shutdown
+    languages: [typescript]
+    severity: INFO

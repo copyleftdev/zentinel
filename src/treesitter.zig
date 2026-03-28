@@ -11,6 +11,7 @@ pub const c = @cImport({
 pub extern fn tree_sitter_python() *c.TSLanguage;
 pub extern fn tree_sitter_javascript() *c.TSLanguage;
 pub extern fn tree_sitter_go() *c.TSLanguage;
+pub extern fn tree_sitter_typescript() *c.TSLanguage;
 
 // ── High-level wrappers ─────────────────────────────────────────────
 
@@ -18,12 +19,14 @@ pub const Language = enum {
     python,
     javascript,
     go,
+    typescript,
 
     pub fn tsLanguage(self: Language) *c.TSLanguage {
         return switch (self) {
             .python => tree_sitter_python(),
             .javascript => tree_sitter_javascript(),
             .go => tree_sitter_go(),
+            .typescript => tree_sitter_typescript(),
         };
     }
 };
