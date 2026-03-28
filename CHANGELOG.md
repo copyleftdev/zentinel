@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.3.1 — 2026-03-27
+
+Web dashboard, rule coverage enforcement, and polish.
+
+### Web Scanner Dashboard
+- `zent serve --port 8000` starts a built-in Zig HTTP server
+- Paste any GitHub URL, scan with all 422 rules, get interactive dashboard
+- Risk score (0-100) with letter grade and OWASP Top 10 mapping
+- Attack surface radar, riskiest files hotspot, severity/tier/language charts
+- Filterable findings: toggle severity, search by rule/file/category
+- Collapsible file groups, category pills, expandable messages
+- Frontend embedded in binary via @embedFile — zero runtime dependencies
+- 7MB binary serves everything (HTML, CSS, JS, logo, scanner)
+
+### Rule Coverage Enforcement
+- `scripts/validate_rule_coverage.py` — fails if any hand-written rule lacks test fixture
+- Pre-commit hook blocks commits with untested rules
+- CI pipeline (.github/workflows/ci.yml) runs all 17 hypotheses + rule coverage
+
+### Community Rules
+- 354 rules translated from Semgrep's public repository
+- Python 271, Go 50, TypeScript 33, JavaScript 31
+- Translation script at `scripts/translate_semgrep_rules.py`
+
+---
+
 ## v0.3.0 — 2026-03-27
 
 Community rule corpus and Tier 3 cross-file analysis.

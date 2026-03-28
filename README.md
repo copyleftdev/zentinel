@@ -81,6 +81,9 @@ zent scan src/**/*.py --config rules/python-security.yaml
 
 # SARIF for CI/CD integration (GitHub Code Scanning, VS Code, etc.)
 zent scan src/ --config rules/javascript-security.yaml --format sarif > results.sarif
+
+# Web dashboard — paste a GitHub URL, get a security report
+zent serve --port 8000
 ```
 
 Exit code 0 = clean. Exit code 1 = findings.
