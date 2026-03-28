@@ -48,6 +48,8 @@ zentinel/
 ├── prd.md                 # Product requirements (READ-ONLY reference)
 ├── build.zig              # Build system — compiles grammars + all targets
 ├── src/
+│   ├── secrets.zig        # Entropy + pattern secret detection (two-gate system)
+│   ├── agent_output.zig   # Agent JSON output (categories, confidence, fixes, context)
 │   ├── taint.zig          # Tier 2 taint analysis (intra-procedural data flow)
 │   ├── columnar.zig       # Columnar mmap ZIR storage (57x warm scan speedup)
 │   ├── crossfile.zig      # Tier 3 cross-file analysis (import→call→sink)

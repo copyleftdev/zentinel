@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.5.0 — 2026-03-28
+
+Agent mode and entropy-based secret detection.
+
+### Agent Output Mode
+- `--format agent` (or `--format json`) outputs structured JSON for AI agents
+- Each finding includes: category tag, confidence score (0.0-1.0), fix suggestion,
+  source context with highlighted lines, severity as string + numeric
+- 10 category tags: command-injection, code-injection, sql-injection, weak-cryptography,
+  hardcoded-secret, unsafe-deserialization, xss, insecure-network, tainted-data-flow, security
+- 20+ fix suggestions with language-specific remediation steps
+- Source context: 2 lines before/after with the finding line marked
+
+### Entropy + Pattern Secret Detection
+- Two-gate system: variable name keyword AND value analysis
+- Shannon entropy with tiered thresholds (3.5 for key/token, 2.0 for password/secret)
+- 30+ known secret patterns: AWS, GitHub, Stripe, Slack, OpenAI, JWT, hex, base64
+- 86% FP reduction on Kubernetes (496 → ~70), 99% on SUSE/connect-ng (131 → 1)
+
+### Validation
+- Tested against Kubernetes (12K Go files), Podman (1.4K files), SUSE/connect-ng (140 files), Effect-TS (1.7K TS files)
+- H9: 8/8, H12: 8/8 (zero regressions)
+- 1.2 billion fuzz inputs, 0 crashes
+
+---
+
 ## v0.4.1 — 2026-03-28
 
 Entropy + pattern-based secret detection.

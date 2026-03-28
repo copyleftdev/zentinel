@@ -102,14 +102,44 @@ One binary at `zig-out/bin/zent` (7MB, zero dependencies).
 # Text output (default)
 zent scan src/**/*.py --config rules/python-security.yaml
 
+# Agent/JSON output — structured for AI agents and automation
+zent scan src/ --config rules.yaml --format agent
+
 # SARIF for CI/CD integration (GitHub Code Scanning, VS Code, etc.)
-zent scan src/ --config rules/javascript-security.yaml --format sarif > results.sarif
+zent scan src/ --config rules.yaml --format sarif > results.sarif
 
 # Web dashboard — paste a GitHub URL, get a security report
 zent serve --port 8000
 ```
 
 Exit code 0 = clean. Exit code 1 = findings.
+
+### Agent mode
+
+`--format agent` outputs structured JSON designed for AI agent consumption. Each finding includes category tags, confidence scores, fix suggestions, and source context — everything an agent needs to triage and patch without reading files separately.
+
+```json
+{
+  "findings": [{
+    "file": "src/auth.py",
+    "line": 42, "col": 5,
+    "severity": "ERROR", "severity_num": 3,
+    "category": "command-injection",
+    "confidence": 0.90,
+    "message": "exec.Command() can lead to command injection",
+    "fix": "Validate and sanitize all arguments to exec.Command().",
+    "context": {
+      "lines": [
+        {"num": 41, "text": "func run(cmd string) {", "highlight": false},
+        {"num": 42, "text": "    exec.Command(cmd)", "highlight": true},
+        {"num": 43, "text": "}", "highlight": false}
+      ]
+    }
+  }]
+}
+```
+
+Categories: `command-injection`, `code-injection`, `sql-injection`, `weak-cryptography`, `hardcoded-secret`, `unsafe-deserialization`, `xss`, `insecure-network`, `tainted-data-flow`
 
 ### Rules
 

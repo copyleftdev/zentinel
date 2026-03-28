@@ -37,6 +37,9 @@ Same findings. Fraction of the time. Zero dependencies.
 # CLI scan
 zent scan src/ --config rules/python-security.yaml
 
+# Agent mode (structured JSON for AI agents)
+zent scan src/ --config rules.yaml --format agent
+
 # Web dashboard
 zent serve --port 8000
 ```
