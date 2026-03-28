@@ -93,7 +93,8 @@ No Python, no Node, no Docker. Everything embedded in the 7MB binary.
 
 ## How it was tested
 
-- **17 hypothesis tests** validating every architectural decision
+- **18 hypothesis tests** validating every architectural decision
 - Ground truth fixtures with zero false positives, zero false negatives
-- **1.1 billion fuzz inputs** across 7 targets — 0 crashes
+- **1.2 billion fuzz inputs** across 8 targets — 0 crashes
+- Columnar ZIR cache: 57x warm scan speedup
 - Rule coverage validation: every hand-written rule has a test

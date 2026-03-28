@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.4.0 — 2026-03-28
+
+Columnar ZIR storage and 1.2 billion fuzz campaign.
+
+### Columnar mmap ZIR Cache
+- New binary format: 12 typed columns, ~45 bytes/node (down from ~65 AoS)
+- Content-addressed: hash(source + normalizer_version), rule-independent
+- First scan: parse → normalize → serialize to .zentinel-cache/{key}.zir
+- Subsequent scans: deserialize from cache → match (skip parse+normalize)
+- ChildIndex zero-copy from columnar data (no rebuild on warm scan)
+- H18: 57.2x warm scan speedup (804μs → 14μs per file)
+- Normalizer version tracking for automatic cache invalidation
+
+### Fuzz Campaign (1.2 billion inputs)
+- New target: columnar deserializer (100M inputs, 10.5M/sec, 0 crashes)
+- 8 targets total, 1.2B inputs, 0 crashes
+- Three campaigns run across v0.1.0, v0.2.1, v0.4.0
+
+### Testing
+- H18: Columnar ZIR storage (5/5 CONFIRMED)
+- 18/18 hypotheses confirmed total
+
+---
+
 ## v0.3.1 — 2026-03-27
 
 Web dashboard, rule coverage enforcement, and polish.

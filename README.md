@@ -146,14 +146,15 @@ Every architectural decision was validated before building on it. 17 hypotheses,
 | H15 | Intra-procedural taint tracking | 8/8 |
 | H16 | Cross-file taint tracking | 5/5 |
 | H17 | Custom taint source/sink configuration | 6/6 |
+| H18 | Columnar ZIR storage (57x warm speedup) | 5/5 |
 
 ### Ground truth validation
 
 Eight deterministic test fixtures across four languages — vulnerable and safe variants — with exact expected finding counts. Every rule fires where it should. No rule fires where it shouldn't. Verified on every build.
 
-### 1.1 billion fuzz inputs
+### 1.2 billion fuzz inputs
 
-Every hot path was fuzzed with 1,100,000,000 randomly generated inputs under Zig's ReleaseSafe mode (bounds checking, overflow detection, alignment validation all active).
+Every hot path was fuzzed with 1,200,000,000 randomly generated inputs under Zig's ReleaseSafe mode (bounds checking, overflow detection, alignment validation all active).
 
 | Target | Inputs | What it tests |
 |--------|--------|--------------|
@@ -162,10 +163,11 @@ Every hot path was fuzzed with 1,100,000,000 randomly generated inputs under Zig
 | patternfast | 200M | Pattern compiler |
 | childindex | 100M | Parent→children adjacency index |
 | taintsource | 100M | Taint source pattern parser |
+| columnar | 100M | Columnar ZIR deserializer |
 | pattern | 50M | Full pattern compilation |
 | rules | 50M | YAML parser |
 
-**Result: 0 crashes.** Two campaigns run (v0.1.0 and v0.2.1). Bugs found and fixed in v0.1.0 (YAML parser edge cases). Clean run on current codebase with zero failures.
+**Result: 0 crashes.** Three campaigns run (v0.1.0, v0.2.1, v0.4.0). Clean run on current codebase with zero failures.
 
 ## Architecture
 
@@ -179,7 +181,7 @@ Source → tree-sitter → CST → Normalizer → ZIR → Prefilter → Matcher 
 
 ## Status
 
-Four languages. Four analysis tiers. 422 security rules. 17 hypotheses confirmed.
+Four languages. Four analysis tiers. 422 security rules. 18 hypotheses confirmed. 1.2 billion fuzz inputs.
 
 - **Tier 0** — Structural matching (node kinds + identifiers)
 - **Tier 1** — Local reasoning (literal classification, argument constraints, f-string detection)
