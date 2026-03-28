@@ -4,11 +4,15 @@ title: Home
 nav_order: 1
 ---
 
-# Zentinel
+<p align="center">
+  <img src="logo.png" alt="Zentinel" width="200">
+</p>
 
-**Static analysis that doesn't waste your time.**
+<h1 align="center">Zentinel</h1>
 
-Zentinel scans Python and JavaScript for security issues in microseconds. One binary, no runtime, no config to debug.
+<p align="center"><strong>Static analysis that doesn't waste your time.</strong></p>
+
+Zentinel scans Python, JavaScript, Go, and TypeScript for security issues in microseconds. One binary, no runtime, no config to debug.
 
 [Get Started](quickstart){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [Download](https://github.com/copyleftdev/zentinel/releases){: .btn .fs-5 .mb-4 .mb-md-0 }
@@ -42,19 +46,19 @@ Scanned 84 file(s) in 12.3ms — 3 finding(s)
 
 ## What it detects
 
-36 built-in security rules covering:
+64 built-in security rules across four languages, with four analysis tiers:
 
-- Command injection (`exec`, `eval`, `os.system`, `subprocess`)
-- Unsafe deserialization (`pickle`, `yaml.load`, `marshal`)
-- Weak cryptography (MD5, SHA-1)
-- Hardcoded secrets
-- XSS patterns (`document.write`)
-- Insecure network (plain HTTP)
+- **Tier 0** — Structural: `exec()`, `eval()`, `os.system()`, hardcoded secrets
+- **Tier 1** — Precision: `subprocess.call(..., shell=True)`, `hashlib.new("md5")`, `eval(f"...")`
+- **Tier 2** — Taint: parameter → variable → sink data flow within functions
+- **Tier 3** — Cross-file: tainted data tracked across `import` boundaries
+
+Covers: command injection, code injection, unsafe deserialization, weak cryptography, hardcoded secrets, XSS, insecure network, SQL injection patterns.
 
 All rules are Semgrep-compatible YAML. Write your own in seconds.
 
 ## How it was tested
 
-- 10 hypothesis tests validating every architectural decision
+- 16 hypothesis tests validating every architectural decision
 - Ground truth fixtures with zero false positives, zero false negatives
 - **1 billion fuzz inputs** across all hot paths — 0 crashes
