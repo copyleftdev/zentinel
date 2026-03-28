@@ -60,7 +60,7 @@ fn printUsage() !void {
         \\  help                         Show this help
         \\
         \\Scan Options:
-        \\  --config, -c <path>          Rules file (required)
+        \\  --config, -c <path>          Rules file or directory (repeatable)
         \\  --format, -f <format>        Output format: text, sarif, agent (default: text)
         \\  --max-tier <0-3>             Maximum rule tier to run (default: all)
         \\
@@ -69,8 +69,10 @@ fn printUsage() !void {
         \\  --rules, -r <path>           Rules directory (default: rules)
         \\
         \\Examples:
-        \\  zent scan src/*.py --config rules.yaml
-        \\  zent scan app.js --config rules.yaml --format sarif
+        \\  zent scan src/*.py --config rules/python-security.yaml
+        \\  zent scan src/*.go -c rules/go-security.yaml -c rules/community/go-community.yaml
+        \\  zent scan src/ --config rules/              # loads all .yaml in directory
+        \\  zent scan app.js --config rules.yaml --format agent
         \\  zent serve --port 8080
         \\
     );
@@ -79,7 +81,8 @@ fn printUsage() !void {
 fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
     var files = std.ArrayList([]const u8).init(allocator);
     defer files.deinit();
-    var config_path: ?[]const u8 = null;
+    var config_paths = std.ArrayList([]const u8).init(allocator);
+    defer config_paths.deinit();
     var format: Format = .text;
     var max_tier: ?u8 = null;
 
@@ -92,7 +95,7 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
                 try stderr.writeAll("Error: --config requires a path argument\n");
                 std.process.exit(1);
             }
-            config_path = args[i];
+            try config_paths.append(args[i]);
         } else if (std.mem.eql(u8, args[i], "--format") or std.mem.eql(u8, args[i], "-f")) {
             i += 1;
             if (i >= args.len) {
@@ -132,22 +135,83 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
         std.process.exit(1);
     }
 
-    if (config_path == null) {
+    if (config_paths.items.len == 0) {
         try stderr.writeAll("Error: --config is required\n");
         std.process.exit(1);
     }
 
-    // Load and compile rules
-    const yaml_source = std.fs.cwd().readFileAlloc(allocator, config_path.?, 1024 * 1024) catch |err| {
-        try stderr.print("Error reading {s}: {s}\n", .{ config_path.?, @errorName(err) });
+    // Expand directory configs: if a config path is a directory, load all .yaml files in it
+    var expanded_configs = std.ArrayList([]const u8).init(allocator);
+    defer expanded_configs.deinit();
+
+    for (config_paths.items) |cp| {
+        // Check if it's a directory
+        if (std.fs.cwd().openDir(cp, .{ .iterate = true })) |dir_val| {
+            var dir = dir_val;
+            defer dir.close();
+            var iter = dir.iterate();
+            while (try iter.next()) |entry| {
+                if (entry.kind == .file and (std.mem.endsWith(u8, entry.name, ".yaml") or std.mem.endsWith(u8, entry.name, ".yml"))) {
+                    const full = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ cp, entry.name });
+                    try expanded_configs.append(full);
+                }
+            }
+            // Also check subdirectories (e.g., community/)
+            var iter2 = dir.iterate();
+            while (try iter2.next()) |entry| {
+                if (entry.kind == .directory) {
+                    var subdir = dir.openDir(entry.name, .{ .iterate = true }) catch continue;
+                    defer subdir.close();
+                    var sub_iter = subdir.iterate();
+                    while (sub_iter.next() catch null) |sub_entry| {
+                        if (sub_entry.kind == .file and (std.mem.endsWith(u8, sub_entry.name, ".yaml") or std.mem.endsWith(u8, sub_entry.name, ".yml"))) {
+                            const full = try std.fmt.allocPrint(allocator, "{s}/{s}/{s}", .{ cp, entry.name, sub_entry.name });
+                            try expanded_configs.append(full);
+                        }
+                    }
+                }
+            }
+        } else |_| {
+            // Not a directory — treat as a file
+            try expanded_configs.append(cp);
+        }
+    }
+
+    // Load and compile rules from all config files
+    // IMPORTANT: YAML sources must stay alive — rules hold slices into them
+    var all_rules = std.ArrayList(rule.Rule).init(allocator);
+    defer all_rules.deinit();
+    var yaml_sources = std.ArrayList([]const u8).init(allocator);
+    defer {
+        for (yaml_sources.items) |ys| allocator.free(ys);
+        yaml_sources.deinit();
+    }
+    var all_yaml_hash = std.ArrayList(u8).init(allocator);
+    defer all_yaml_hash.deinit();
+
+    for (expanded_configs.items) |config_file| {
+        const yaml_source = std.fs.cwd().readFileAlloc(allocator, config_file, 2 * 1024 * 1024) catch |err| {
+            try stderr.print("Warning: could not read {s}: {s}\n", .{ config_file, @errorName(err) });
+            continue;
+        };
+
+        try all_yaml_hash.appendSlice(yaml_source);
+
+        const rules = rule.parseRules(yaml_source, allocator) catch |err| {
+            try stderr.print("Warning: could not parse {s}: {s}\n", .{ config_file, @errorName(err) });
+            allocator.free(yaml_source);
+            continue;
+        };
+        try yaml_sources.append(yaml_source); // Keep alive
+        for (rules) |r| try all_rules.append(r);
+    }
+
+    if (all_rules.items.len == 0) {
+        try stderr.writeAll("Error: no rules loaded from config files\n");
         std.process.exit(1);
-    };
-    defer allocator.free(yaml_source);
+    }
 
-    const rules = try rule.parseRules(yaml_source, allocator);
-    defer allocator.free(rules);
-
-    const all_compiled = try rule.compileRules(rules, allocator);
+    const all_compiled = try rule.compileRules(all_rules.items, allocator);
     defer allocator.free(all_compiled);
 
     // Filter by max tier if specified
@@ -160,16 +224,16 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
     } else all_compiled;
     defer if (max_tier != null) allocator.free(compiled);
 
-    const rules_h = cache.rulesHash(yaml_source);
+    const rules_h = cache.rulesHash(all_yaml_hash.items);
 
     // Build rule dispatch index (once for entire scan)
     var rule_index = try fast_matcher.RuleIndex.build(compiled, allocator);
     defer rule_index.deinit();
 
     if (max_tier) |mt| {
-        try stderr.print("Loaded {d} rules ({d} compiled, tier <= {d})\n", .{ rules.len, compiled.len, mt });
+        try stderr.print("Loaded {d} rules ({d} compiled, tier <= {d}) from {d} config(s)\n", .{ all_rules.items.len, compiled.len, mt, expanded_configs.items.len });
     } else {
-        try stderr.print("Loaded {d} rules ({d} compiled)\n", .{ rules.len, compiled.len });
+        try stderr.print("Loaded {d} rules ({d} compiled) from {d} config(s)\n", .{ all_rules.items.len, compiled.len, expanded_configs.items.len });
     }
 
     // Initialize parser
