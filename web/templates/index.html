@@ -9,6 +9,7 @@
 :root {
   --bg: #0a0a0f;
   --surface: #12121a;
+  --surface2: #181824;
   --border: #1e1e2e;
   --text: #e0e0e8;
   --dim: #6b6b80;
@@ -17,192 +18,77 @@
   --warning: #ffb84d;
   --info: #4dd4ff;
   --success: #4dff88;
-  --glow: rgba(77,122,255,0.15);
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace; background:var(--bg); color:var(--text); min-height:100vh; }
 
-body {
-  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-}
+.header { text-align:center; padding:1.5rem 1rem 1rem; border-bottom:1px solid var(--border); }
+.header img { width:56px; margin-bottom:0.3rem; }
+.header h1 { font-size:1.4rem; font-weight:600; letter-spacing:0.05em; }
+.header p { color:var(--dim); font-size:0.75rem; margin-top:0.2rem; }
 
-.header {
-  text-align: center;
-  padding: 2rem 1rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
+.input-bar { max-width:700px; margin:1.5rem auto; display:flex; gap:0.5rem; padding:0 1rem; }
+.input-bar input { flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:0.7rem 1rem; font-family:inherit; font-size:0.85rem; border-radius:6px; outline:none; }
+.input-bar input:focus { border-color:var(--accent); }
+.input-bar button { background:var(--accent); border:none; color:#fff; padding:0.7rem 1.5rem; font-family:inherit; font-size:0.85rem; font-weight:600; border-radius:6px; cursor:pointer; }
+.input-bar button:disabled { opacity:0.4; cursor:wait; }
 
-.header img { width: 64px; margin-bottom: 0.5rem; }
-.header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 0.05em; }
-.header p { color: var(--dim); font-size: 0.8rem; margin-top: 0.25rem; }
+#status { text-align:center; color:var(--dim); font-size:0.8rem; min-height:1.3rem; margin-bottom:0.5rem; }
+.pulse { animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-.input-bar {
-  max-width: 700px;
-  margin: 2rem auto;
-  display: flex;
-  gap: 0.5rem;
-  padding: 0 1rem;
-}
+.dashboard { display:none; max-width:1300px; margin:0 auto; padding:0 1rem 3rem; }
 
-.input-bar input {
-  flex: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.75rem 1rem;
-  font-family: inherit;
-  font-size: 0.9rem;
-  border-radius: 6px;
-  outline: none;
-  transition: border-color 0.2s;
-}
+/* Stats */
+.stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.75rem; margin-bottom:1.5rem; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem; text-align:center; cursor:pointer; transition:border-color 0.2s; }
+.stat-card:hover { border-color:var(--accent); }
+.stat-card.active { border-color:var(--accent); box-shadow:0 0 12px rgba(77,122,255,0.2); }
+.stat-card .value { font-size:1.8rem; font-weight:700; color:var(--accent); }
+.stat-card .label { font-size:0.65rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.1em; margin-top:0.15rem; }
+.stat-card.error .value { color:var(--error); }
+.stat-card.warning .value { color:var(--warning); }
+.stat-card.info .value { color:var(--info); }
 
-.input-bar input:focus { border-color: var(--accent); }
+/* Filter bar */
+.filter-bar { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:1.5rem; padding:0.75rem 1rem; background:var(--surface); border:1px solid var(--border); border-radius:8px; }
+.filter-bar label { font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.08em; }
+.filter-btn { background:var(--surface2); border:1px solid var(--border); color:var(--dim); padding:4px 10px; font-family:inherit; font-size:0.7rem; border-radius:4px; cursor:pointer; transition:all 0.15s; }
+.filter-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.filter-btn.sev-ERROR.active { background:var(--error); border-color:var(--error); }
+.filter-btn.sev-WARNING.active { background:var(--warning); border-color:var(--warning); color:#000; }
+.filter-btn.sev-INFO.active { background:var(--info); border-color:var(--info); color:#000; }
+.filter-search { flex:1; min-width:150px; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:4px 8px; font-family:inherit; font-size:0.75rem; border-radius:4px; outline:none; }
+.filter-search:focus { border-color:var(--accent); }
+.filter-count { font-size:0.75rem; color:var(--accent); margin-left:auto; }
 
-.input-bar button {
-  background: var(--accent);
-  border: none;
-  color: #fff;
-  padding: 0.75rem 1.5rem;
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
+/* Charts */
+.charts-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:1.5rem; }
+@media(max-width:900px) { .charts-row { grid-template-columns:1fr; } }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem; }
+.chart-card h3 { font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.75rem; }
 
-.input-bar button:hover { opacity: 0.9; }
-.input-bar button:disabled { opacity: 0.4; cursor: wait; }
+/* Findings */
+.findings-section { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.findings-section h3 { font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.1em; padding:0.75rem 1rem 0.4rem; }
+.findings-section table { width:100%; border-collapse:collapse; font-size:0.75rem; }
+.findings-section th { text-align:left; padding:0.4rem 0.75rem; color:var(--dim); font-weight:500; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); }
+.findings-section td { padding:0.35rem 0.75rem; border-bottom:1px solid var(--border); max-width:350px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.findings-section tr:hover td { background:var(--surface2); }
+.findings-scroll { max-height:500px; overflow-y:auto; }
+.sev { font-weight:700; font-size:0.65rem; padding:2px 6px; border-radius:3px; }
+.sev-ERROR { background:rgba(255,77,106,0.15); color:var(--error); }
+.sev-WARNING { background:rgba(255,184,77,0.15); color:var(--warning); }
+.sev-INFO { background:rgba(77,212,255,0.15); color:var(--info); }
 
-#status {
-  text-align: center;
-  color: var(--dim);
-  font-size: 0.85rem;
-  min-height: 1.5rem;
-  margin-bottom: 1rem;
-}
+/* File groups */
+.file-group { cursor:pointer; }
+.file-group td { background:var(--surface2); font-weight:600; color:var(--accent); }
+.file-group td:first-child::before { content:''; margin-right:4px; }
 
-.dashboard {
-  display: none;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem 3rem;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem;
-  text-align: center;
-}
-
-.stat-card .value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.stat-card .label {
-  font-size: 0.75rem;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-top: 0.25rem;
-}
-
-.stat-card.error .value { color: var(--error); }
-.stat-card.warning .value { color: var(--warning); }
-.stat-card.info .value { color: var(--info); }
-
-.charts-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-@media (max-width: 768px) {
-  .charts-row { grid-template-columns: 1fr; }
-}
-
-.chart-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem;
-}
-
-.chart-card h3 {
-  font-size: 0.8rem;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 1rem;
-}
-
-.findings-table {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.findings-table h3 {
-  font-size: 0.8rem;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 1rem 1.25rem 0.5rem;
-}
-
-.findings-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-}
-
-.findings-table th {
-  text-align: left;
-  padding: 0.5rem 1rem;
-  color: var(--dim);
-  font-weight: 500;
-  border-bottom: 1px solid var(--border);
-}
-
-.findings-table td {
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border);
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sev { font-weight: 700; font-size: 0.7rem; padding: 2px 6px; border-radius: 3px; }
-.sev-ERROR { background: rgba(255,77,106,0.15); color: var(--error); }
-.sev-WARNING { background: rgba(255,184,77,0.15); color: var(--warning); }
-.sev-INFO { background: rgba(77,212,255,0.15); color: var(--info); }
-
-.pulse {
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
+/* Category pills */
+.cat-pill { font-size:0.6rem; padding:1px 5px; border-radius:3px; background:rgba(77,122,255,0.15); color:var(--accent); }
 </style>
 </head>
 <body>
@@ -214,46 +100,90 @@ body {
 </div>
 
 <div class="input-bar">
-  <input type="text" id="repoUrl" placeholder="https://github.com/owner/repo"
-         value="https://github.com/pallets/flask">
+  <input type="text" id="repoUrl" placeholder="https://github.com/owner/repo" value="https://github.com/pallets/flask">
   <button id="scanBtn" onclick="startScan()">Scan</button>
 </div>
-
 <div id="status"></div>
 
 <div class="dashboard" id="dashboard">
   <div class="stats-row" id="statsRow"></div>
-  <div class="charts-row">
-    <div class="chart-card">
-      <h3>Severity Distribution</h3>
-      <canvas id="sevChart"></canvas>
-    </div>
-    <div class="chart-card">
-      <h3>Analysis Tiers</h3>
-      <canvas id="tierChart"></canvas>
-    </div>
+
+  <div class="filter-bar" id="filterBar">
+    <label>Filter:</label>
+    <button class="filter-btn sev-ERROR active" data-sev="ERROR" onclick="toggleSev(this)">ERROR</button>
+    <button class="filter-btn sev-WARNING active" data-sev="WARNING" onclick="toggleSev(this)">WARNING</button>
+    <button class="filter-btn sev-INFO active" data-sev="INFO" onclick="toggleSev(this)">INFO</button>
+    <span style="color:var(--border)">|</span>
+    <label>Search:</label>
+    <input class="filter-search" id="filterSearch" placeholder="rule, file, or message..." oninput="applyFilters()">
+    <span class="filter-count" id="filterCount"></span>
   </div>
+
   <div class="charts-row">
     <div class="chart-card">
-      <h3>Languages</h3>
-      <canvas id="langChart"></canvas>
+      <h3>Attack Surface Profile</h3>
+      <canvas id="radarChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Severity</h3>
+      <canvas id="sevChart"></canvas>
     </div>
     <div class="chart-card">
       <h3>Top Rules</h3>
       <canvas id="rulesChart"></canvas>
     </div>
   </div>
-  <div class="findings-table">
-    <h3>Findings</h3>
-    <table>
-      <thead><tr><th>File</th><th>Line</th><th>Severity</th><th>Rule</th><th>Message</th></tr></thead>
-      <tbody id="findingsBody"></tbody>
-    </table>
+
+  <div class="charts-row" style="grid-template-columns:1fr 1fr;">
+    <div class="chart-card">
+      <h3>Languages (files)</h3>
+      <canvas id="langChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Analysis Tiers</h3>
+      <canvas id="tierChart"></canvas>
+    </div>
+  </div>
+
+  <div class="findings-section">
+    <h3 id="findingsTitle">Findings</h3>
+    <div class="findings-scroll">
+      <table>
+        <thead><tr><th>File</th><th>Line</th><th>Severity</th><th>Category</th><th>Rule</th><th>Message</th></tr></thead>
+        <tbody id="findingsBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <script>
 let charts = {};
+let scanData = null;
+let activeFilters = { sevs: new Set(['ERROR','WARNING','INFO']), search: '' };
+
+// Category classification
+const CATEGORIES = {
+  'Command Injection': ['exec','system','popen','subprocess','command','spawn','child_process'],
+  'Code Injection': ['eval','compile','function-constructor','settimeout-string','setinterval-string'],
+  'Cryptography': ['md5','sha1','crypto','hash','cipher','ssl','tls'],
+  'Secrets': ['secret','key','password','token','hardcoded','api-key','credential'],
+  'Deserialization': ['pickle','yaml-load','marshal','shelve','json-parse','deserializ'],
+  'XSS / DOM': ['innerhtml','document.write','xss','dom','sanitiz'],
+  'SQL Injection': ['sql','query','cursor','inject','sqli'],
+  'Network': ['http','https','request','ftp','url','ssrf'],
+  'File System': ['readfile','writefile','path','file','tempfile','directory'],
+  'AI / LLM': ['openai','anthropic','llm','genai','mistral','cohere','gemini'],
+};
+
+function classifyCategory(ruleId) {
+  const lower = ruleId.toLowerCase();
+  for (const [cat, keywords] of Object.entries(CATEGORIES)) {
+    for (const kw of keywords) {
+      if (lower.includes(kw)) return cat;
+    }
+  }
+  return 'Other';
+}
 
 function setStatus(msg, pulse) {
   const el = document.getElementById('status');
@@ -264,144 +194,192 @@ function setStatus(msg, pulse) {
 async function startScan() {
   const url = document.getElementById('repoUrl').value.trim();
   if (!url) return;
-
   const btn = document.getElementById('scanBtn');
-  btn.disabled = true;
-  btn.textContent = 'Scanning...';
+  btn.disabled = true; btn.textContent = 'Scanning...';
   setStatus('Cloning repository...', true);
   document.getElementById('dashboard').style.display = 'none';
 
   try {
     const resp = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ repo_url: url }),
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({repo_url: url}),
     });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      setStatus('Error: ' + (err.detail || 'Scan failed'), false);
-      return;
-    }
-
-    const data = await resp.json();
-    renderDashboard(data);
-    setStatus(`Scanned ${data.files_scanned} files in ${data.duration_ms}ms — ${data.findings.length} findings`, false);
-  } catch (e) {
-    setStatus('Error: ' + e.message, false);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Scan';
-  }
+    if (!resp.ok) { const err = await resp.json(); setStatus('Error: '+(err.detail||'Scan failed'), false); return; }
+    scanData = await resp.json();
+    // Enrich findings with categories
+    scanData.findings.forEach(f => { f.category = classifyCategory(f.rule_id); });
+    renderDashboard();
+    setStatus(`Scanned ${scanData.files_scanned} files in ${scanData.duration_ms}ms`, false);
+  } catch(e) { setStatus('Error: '+e.message, false); }
+  finally { btn.disabled = false; btn.textContent = 'Scan'; }
 }
 
-function renderDashboard(data) {
-  const dash = document.getElementById('dashboard');
-  dash.style.display = 'block';
+function getFiltered() {
+  if (!scanData) return [];
+  return scanData.findings.filter(f => {
+    if (!activeFilters.sevs.has(f.severity)) return false;
+    if (activeFilters.search) {
+      const s = activeFilters.search.toLowerCase();
+      if (!f.rule_id.toLowerCase().includes(s) && !f.file.toLowerCase().includes(s) && !f.message.toLowerCase().includes(s) && !f.category.toLowerCase().includes(s)) return false;
+    }
+    return true;
+  });
+}
 
-  // Stats cards
-  const statsRow = document.getElementById('statsRow');
-  const totalFindings = data.findings.length;
-  const errors = data.severity_counts.ERROR || 0;
-  const warnings = data.severity_counts.WARNING || 0;
-  const infos = data.severity_counts.INFO || 0;
+function toggleSev(btn) {
+  const sev = btn.dataset.sev;
+  if (activeFilters.sevs.has(sev)) { activeFilters.sevs.delete(sev); btn.classList.remove('active'); }
+  else { activeFilters.sevs.add(sev); btn.classList.add('active'); }
+  applyFilters();
+}
 
-  statsRow.innerHTML = `
-    <div class="stat-card"><div class="value">${data.files_scanned}</div><div class="label">Files Scanned</div></div>
-    <div class="stat-card"><div class="value">${totalFindings}</div><div class="label">Total Findings</div></div>
-    <div class="stat-card error"><div class="value">${errors}</div><div class="label">Errors</div></div>
-    <div class="stat-card warning"><div class="value">${warnings}</div><div class="label">Warnings</div></div>
-    <div class="stat-card info"><div class="value">${infos}</div><div class="label">Info</div></div>
-    <div class="stat-card"><div class="value">${data.duration_ms}ms</div><div class="label">Scan Time</div></div>
+function applyFilters() {
+  activeFilters.search = document.getElementById('filterSearch').value;
+  renderFindings();
+}
+
+function renderDashboard() {
+  document.getElementById('dashboard').style.display = 'block';
+  const d = scanData;
+  const total = d.findings.length;
+  const errors = d.severity_counts.ERROR||0, warnings = d.severity_counts.WARNING||0, infos = d.severity_counts.INFO||0;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card" onclick="filterBySev(null)"><div class="value">${d.files_scanned}</div><div class="label">Files</div></div>
+    <div class="stat-card" onclick="filterBySev(null)"><div class="value">${total}</div><div class="label">Findings</div></div>
+    <div class="stat-card error" onclick="filterBySev('ERROR')"><div class="value">${errors}</div><div class="label">Errors</div></div>
+    <div class="stat-card warning" onclick="filterBySev('WARNING')"><div class="value">${warnings}</div><div class="label">Warnings</div></div>
+    <div class="stat-card info" onclick="filterBySev('INFO')"><div class="value">${infos}</div><div class="label">Info</div></div>
+    <div class="stat-card"><div class="value">${d.duration_ms}ms</div><div class="label">Scan Time</div></div>
   `;
 
-  // Destroy old charts
-  Object.values(charts).forEach(c => c.destroy());
-  charts = {};
+  Object.values(charts).forEach(c => c.destroy()); charts = {};
+  const cOpts = { responsive:true, plugins:{ legend:{ labels:{ color:'#6b6b80', font:{family:'inherit',size:10} } } } };
 
-  const chartOpts = {
-    responsive: true,
-    plugins: {
-      legend: { labels: { color: '#6b6b80', font: { family: 'inherit', size: 11 } } }
-    }
-  };
+  // Radar chart — attack surface profile
+  const catCounts = {};
+  d.findings.forEach(f => { const c = f.category; catCounts[c] = (catCounts[c]||0)+1; });
+  const catLabels = Object.keys(catCounts).sort((a,b) => catCounts[b]-catCounts[a]);
+  const catValues = catLabels.map(l => catCounts[l]);
 
-  // Severity chart
-  charts.sev = new Chart(document.getElementById('sevChart'), {
-    type: 'doughnut',
+  charts.radar = new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
     data: {
-      labels: ['ERROR', 'WARNING', 'INFO'],
-      datasets: [{ data: [errors, warnings, infos], backgroundColor: ['#ff4d6a', '#ffb84d', '#4dd4ff'] }]
-    },
-    options: { ...chartOpts, cutout: '60%' }
-  });
-
-  // Tier chart
-  const tiers = data.tier_counts || {};
-  charts.tier = new Chart(document.getElementById('tierChart'), {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(tiers),
-      datasets: [{ data: Object.values(tiers), backgroundColor: ['#4d7aff', '#4dff88', '#ffb84d'] }]
-    },
-    options: { ...chartOpts, cutout: '60%' }
-  });
-
-  // Languages chart
-  charts.lang = new Chart(document.getElementById('langChart'), {
-    type: 'bar',
-    data: {
-      labels: Object.keys(data.languages),
-      datasets: [{ label: 'Files', data: Object.values(data.languages), backgroundColor: '#4d7aff' }]
+      labels: catLabels,
+      datasets: [{
+        label: 'Findings',
+        data: catValues,
+        backgroundColor: 'rgba(77,122,255,0.15)',
+        borderColor: '#4d7aff',
+        borderWidth: 2,
+        pointBackgroundColor: '#4d7aff',
+        pointRadius: 3,
+      }]
     },
     options: {
-      ...chartOpts,
+      ...cOpts,
       scales: {
-        x: { ticks: { color: '#6b6b80' }, grid: { color: '#1e1e2e' } },
-        y: { ticks: { color: '#6b6b80' }, grid: { color: '#1e1e2e' } }
+        r: {
+          angleLines: { color: '#1e1e2e' },
+          grid: { color: '#1e1e2e' },
+          pointLabels: { color: '#6b6b80', font: { size: 9 } },
+          ticks: { display: false },
+        }
       }
     }
   });
 
-  // Top rules chart
-  const topRules = data.top_rules || [];
+  // Severity doughnut
+  charts.sev = new Chart(document.getElementById('sevChart'), {
+    type: 'doughnut',
+    data: { labels:['ERROR','WARNING','INFO'], datasets:[{data:[errors,warnings,infos], backgroundColor:['#ff4d6a','#ffb84d','#4dd4ff']}] },
+    options: { ...cOpts, cutout:'65%', onClick: (_,els) => { if(els[0]) filterBySev(['ERROR','WARNING','INFO'][els[0].index]); } }
+  });
+
+  // Top rules
+  const topRules = d.top_rules||[];
   charts.rules = new Chart(document.getElementById('rulesChart'), {
     type: 'bar',
     data: {
-      labels: topRules.map(r => r.rule.split('.').pop().substring(0, 20)),
-      datasets: [{ label: 'Hits', data: topRules.map(r => r.count), backgroundColor: '#ff4d6a' }]
+      labels: topRules.map(r => r.rule.split('.').pop().substring(0,25)),
+      datasets: [{ label:'Hits', data:topRules.map(r=>r.count), backgroundColor:'#ff4d6a' }]
     },
     options: {
-      ...chartOpts,
-      indexAxis: 'y',
-      scales: {
-        x: { ticks: { color: '#6b6b80' }, grid: { color: '#1e1e2e' } },
-        y: { ticks: { color: '#6b6b80', font: { size: 10 } }, grid: { color: '#1e1e2e' } }
-      }
+      ...cOpts, indexAxis:'y',
+      scales: { x:{ticks:{color:'#6b6b80'},grid:{color:'#1e1e2e'}}, y:{ticks:{color:'#6b6b80',font:{size:9}},grid:{color:'#1e1e2e'}} },
+      onClick: (_,els) => { if(els[0]) { document.getElementById('filterSearch').value = topRules[els[0].index].rule.split('.').pop(); applyFilters(); } }
     }
   });
 
-  // Findings table
-  const tbody = document.getElementById('findingsBody');
-  tbody.innerHTML = data.findings.slice(0, 100).map(f => `
-    <tr>
-      <td title="${f.file}">${f.file.split('/').slice(-2).join('/')}</td>
-      <td>${f.line}</td>
-      <td><span class="sev sev-${f.severity}">${f.severity}</span></td>
-      <td title="${f.rule_id}">${f.rule_id.split('.').pop()}</td>
-      <td title="${f.message}">${f.message.substring(0, 80)}</td>
-    </tr>
-  `).join('');
+  // Languages
+  charts.lang = new Chart(document.getElementById('langChart'), {
+    type: 'bar',
+    data: { labels:Object.keys(d.languages), datasets:[{label:'Files',data:Object.values(d.languages),backgroundColor:'#4d7aff'}] },
+    options: { ...cOpts, scales:{x:{ticks:{color:'#6b6b80'},grid:{color:'#1e1e2e'}},y:{ticks:{color:'#6b6b80'},grid:{color:'#1e1e2e'}}} }
+  });
 
-  if (data.findings.length > 100) {
-    tbody.innerHTML += `<tr><td colspan="5" style="color:var(--dim);text-align:center">... and ${data.findings.length - 100} more</td></tr>`;
-  }
+  // Tiers
+  const tiers = d.tier_counts||{};
+  charts.tier = new Chart(document.getElementById('tierChart'), {
+    type: 'doughnut',
+    data: { labels:Object.keys(tiers), datasets:[{data:Object.values(tiers),backgroundColor:['#4d7aff','#4dff88','#ffb84d','#ff4d6a']}] },
+    options: { ...cOpts, cutout:'65%' }
+  });
+
+  renderFindings();
 }
 
-// Enter key triggers scan
-document.getElementById('repoUrl').addEventListener('keydown', e => {
-  if (e.key === 'Enter') startScan();
-});
+function filterBySev(sev) {
+  if (sev === null) {
+    activeFilters.sevs = new Set(['ERROR','WARNING','INFO']);
+    document.querySelectorAll('.filter-btn[data-sev]').forEach(b => b.classList.add('active'));
+  } else {
+    activeFilters.sevs = new Set([sev]);
+    document.querySelectorAll('.filter-btn[data-sev]').forEach(b => {
+      b.classList.toggle('active', b.dataset.sev === sev);
+    });
+  }
+  applyFilters();
+}
+
+function renderFindings() {
+  const filtered = getFiltered();
+  document.getElementById('filterCount').textContent = `${filtered.length} of ${scanData.findings.length}`;
+  document.getElementById('findingsTitle').textContent = `Findings (${filtered.length})`;
+
+  // Group by file
+  const byFile = {};
+  filtered.forEach(f => { (byFile[f.file] = byFile[f.file]||[]).push(f); });
+
+  const tbody = document.getElementById('findingsBody');
+  let html = '';
+  const sortedFiles = Object.keys(byFile).sort((a,b) => byFile[b].length - byFile[a].length);
+
+  for (const file of sortedFiles.slice(0, 50)) {
+    const findings = byFile[file];
+    const shortFile = file.split('/').slice(-3).join('/');
+    html += `<tr class="file-group" onclick="this.classList.toggle('collapsed');let s=this.nextElementSibling;while(s&&!s.classList.contains('file-group')){s.style.display=s.style.display==='none'?'':'none';s=s.nextElementSibling;}">
+      <td colspan="6">${shortFile} (${findings.length})</td></tr>`;
+    for (const f of findings.slice(0, 50)) {
+      html += `<tr>
+        <td></td>
+        <td>${f.line}</td>
+        <td><span class="sev sev-${f.severity}">${f.severity}</span></td>
+        <td><span class="cat-pill">${f.category}</span></td>
+        <td title="${f.rule_id}">${f.rule_id.split('.').pop().substring(0,25)}</td>
+        <td title="${esc(f.message)}">${esc(f.message).substring(0,90)}</td>
+      </tr>`;
+    }
+    if (findings.length > 50) html += `<tr><td colspan="6" style="color:var(--dim);text-align:center;font-size:0.7rem">... ${findings.length-50} more in this file</td></tr>`;
+  }
+  if (sortedFiles.length > 50) html += `<tr><td colspan="6" style="color:var(--dim);text-align:center">... ${sortedFiles.length-50} more files</td></tr>`;
+
+  tbody.innerHTML = html;
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.getElementById('repoUrl').addEventListener('keydown', e => { if(e.key==='Enter') startScan(); });
 </script>
 </body>
 </html>
