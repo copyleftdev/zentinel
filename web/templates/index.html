@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zentinel Scanner</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --border: #1e1e2e;
+  --text: #e0e0e8;
+  --dim: #6b6b80;
+  --accent: #4d7aff;
+  --error: #ff4d6a;
+  --warning: #ffb84d;
+  --info: #4dd4ff;
+  --success: #4dff88;
+  --glow: rgba(77,122,255,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.header img { width: 64px; margin-bottom: 0.5rem; }
+.header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 0.05em; }
+.header p { color: var(--dim); font-size: 0.8rem; margin-top: 0.25rem; }
+
+.input-bar {
+  max-width: 700px;
+  margin: 2rem auto;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+.input-bar input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-bar input:focus { border-color: var(--accent); }
+
+.input-bar button {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.input-bar button:hover { opacity: 0.9; }
+.input-bar button:disabled { opacity: 0.4; cursor: wait; }
+
+#status {
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.85rem;
+  min-height: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard {
+  display: none;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.stat-card .value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-card .label {
+  font-size: 0.75rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.25rem;
+}
+
+.stat-card.error .value { color: var(--error); }
+.stat-card.warning .value { color: var(--warning); }
+.stat-card.info .value { color: var(--info); }
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .charts-row { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.chart-card h3 {
+  font-size: 0.8rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+}
+
+.findings-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.findings-table h3 {
+  font-size: 0.8rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.findings-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.findings-table th {
+  text-align: left;
+  padding: 0.5rem 1rem;
+  color: var(--dim);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+}
+
+.findings-table td {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sev { font-weight: 700; font-size: 0.7rem; padding: 2px 6px; border-radius: 3px; }
+.sev-ERROR { background: rgba(255,77,106,0.15); color: var(--error); }
+.sev-WARNING { background: rgba(255,184,77,0.15); color: var(--warning); }
+.sev-INFO { background: rgba(77,212,255,0.15); color: var(--info); }
+
+.pulse {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img src="/static/logo.png" alt="Zentinel" onerror="this.style.display='none'">
+  <h1>ZENTINEL</h1>
+  <p>422 rules &middot; 4 languages &middot; 4 analysis tiers</p>
+</div>
+
+<div class="input-bar">
+  <input type="text" id="repoUrl" placeholder="https://github.com/owner/repo"
+         value="https://github.com/pallets/flask">
+  <button id="scanBtn" onclick="startScan()">Scan</button>
+</div>
+
+<div id="status"></div>
+
+<div class="dashboard" id="dashboard">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Severity Distribution</h3>
+      <canvas id="sevChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Analysis Tiers</h3>
+      <canvas id="tierChart"></canvas>
+    </div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Languages</h3>
+      <canvas id="langChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Top Rules</h3>
+      <canvas id="rulesChart"></canvas>
+    </div>
+  </div>
+  <div class="findings-table">
+    <h3>Findings</h3>
+    <table>
+      <thead><tr><th>File</th><th>Line</th><th>Severity</th><th>Rule</th><th>Message</th></tr></thead>
+      <tbody id="findingsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let charts = {};
+
+function setStatus(msg, pulse) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = pulse ? 'pulse' : '';
+}
+
+async function startScan() {
+  const url = document.getElementById('repoUrl').value.trim();
+  if (!url) return;
+
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+  setStatus('Cloning repository...', true);
+  document.getElementById('dashboard').style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo_url: url }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      setStatus('Error: ' + (err.detail || 'Scan failed'), false);
+      return;
+    }
+
+    const data = await resp.json();
+    renderDashboard(data);
+    setStatus(`Scanned ${data.files_scanned} files in ${data.duration_ms}ms — ${data.findings.length} findings`, false);
+  } catch (e) {
+    setStatus('Error: ' + e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Scan';
+  }
+}
+
+function renderDashboard(data) {
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'block';
+
+  // Stats cards
+  const statsRow = document.getElementById('statsRow');
+  const totalFindings = data.findings.length;
+  const errors = data.severity_counts.ERROR || 0;
+  const warnings = data.severity_counts.WARNING || 0;
+  const infos = data.severity_counts.INFO || 0;
+
+  statsRow.innerHTML = `
+    <div class="stat-card"><div class="value">${data.files_scanned}</div><div class="label">Files Scanned</div></div>
+    <div class="stat-card"><div class="value">${totalFindings}</div><div class="label">Total Findings</div></div>
+    <div class="stat-card error"><div class="value">${errors}</div><div class="label">Errors</div></div>
+    <div class="stat-card warning"><div class="value">${warnings}</div><div class="label">Warnings</div></div>
+    <div class="stat-card info"><div class="value">${infos}</div><div class="label">Info</div></div>
+    <div class="stat-card"><div class="value">${data.duration_ms}ms</div><div class="label">Scan Time</div></div>
+  `;
+
+  // Destroy old charts
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+
+  const chartOpts = {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#6b6b80', font: { family: 'inherit', size: 11 } } }
+    }
+  };
+
+  // Severity chart
+  charts.sev = new Chart(document.getElementById('sevChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['ERROR', 'WARNING', 'INFO'],
+      datasets: [{ data: [errors, warnings, infos], backgroundColor: ['#ff4d6a', '#ffb84d', '#4dd4ff'] }]
+    },
+    options: { ...chartOpts, cutout: '60%' }
+  });
+
+  // Tier chart
+  const tiers = data.tier_counts || {};
+  charts.tier = new Chart(document.getElementById('tierChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(tiers),
+      datasets: [{ data: Object.values(tiers), backgroundColor: ['#4d7aff', '#4dff88', '#ffb84d'] }]
+    },
+    options: { ...chartOpts, cutout: '60%' }
+  });
+
+  // Languages chart
+  charts.lang = new Chart(document.getElementById('langChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(data.languages),
+      datasets: [{ label: 'Files', data: Object.values(data.languages), backgroundColor: '#4d7aff' }]
+    },
+    options: {
+      ...chartOpts,
+      scales: {
+        x: { ticks: { color: '#6b6b80' }, grid: { color: '#1e1e2e' } },
+        y: { ticks: { color: '#6b6b80' }, grid: { color: '#1e1e2e' } }
+      }
+    }
+  });
+
+  // Top rules chart
+  const topRules = data.top_rules || [];
+  charts.rules = new Chart(document.getElementById('rulesChart'), {
+    type: 'bar',
+    data: {
+      labels: topRules.map(r => r.rule.split('.').pop().substring(0, 20)),
+      datasets: [{ label: 'Hits', data: topRules.map(r => r.count), backgroundColor: '#ff4d6a' }]
+    },
+    options: {
+      ...chartOpts,
+      indexAxis: 'y',
+      scales: {
+        x: { ticks: { color: '#6b6b80' }, grid: { color: '#1e1e2e' } },
+        y: { ticks: { color: '#6b6b80', font: { size: 10 } }, grid: { color: '#1e1e2e' } }
+      }
+    }
+  });
+
+  // Findings table
+  const tbody = document.getElementById('findingsBody');
+  tbody.innerHTML = data.findings.slice(0, 100).map(f => `
+    <tr>
+      <td title="${f.file}">${f.file.split('/').slice(-2).join('/')}</td>
+      <td>${f.line}</td>
+      <td><span class="sev sev-${f.severity}">${f.severity}</span></td>
+      <td title="${f.rule_id}">${f.rule_id.split('.').pop()}</td>
+      <td title="${f.message}">${f.message.substring(0, 80)}</td>
+    </tr>
+  `).join('');
+
+  if (data.findings.length > 100) {
+    tbody.innerHTML += `<tr><td colspan="5" style="color:var(--dim);text-align:center">... and ${data.findings.length - 100} more</td></tr>`;
+  }
+}
+
+// Enter key triggers scan
+document.getElementById('repoUrl').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startScan();
+});
+</script>
+</body>
+</html>
