@@ -117,6 +117,12 @@ pub fn build(b: *std.Build) void {
     matcher_mod.addImport("rule", rule_mod);
     matcher_mod.addImport("secrets", secrets_mod);
 
+    const agent_output_mod = b.addModule("agent_output", .{
+        .root_source_file = .{ .cwd_relative = "src/agent_output.zig" },
+    });
+    agent_output_mod.addImport("matcher", matcher_mod);
+    agent_output_mod.addImport("rule", rule_mod);
+
     const sarif_mod = b.addModule("sarif", .{
         .root_source_file = .{ .cwd_relative = "src/sarif.zig" },
     });
@@ -196,6 +202,7 @@ pub fn build(b: *std.Build) void {
     zent.root_module.addImport("rule", rule_mod);
     zent.root_module.addImport("matcher", matcher_mod);
     zent.root_module.addImport("sarif", sarif_mod);
+    zent.root_module.addImport("agent_output", agent_output_mod);
     zent.root_module.addImport("fast_matcher", fast_matcher_mod);
     zent.root_module.addImport("taint", taint_mod);
     zent.root_module.addImport("crossfile", crossfile_mod);

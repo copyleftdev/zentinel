@@ -11,6 +11,7 @@ const rule = @import("rule");
 const matcher = @import("matcher");
 const fast_matcher = @import("fast_matcher");
 const sarif = @import("sarif");
+const agent_output = @import("agent_output");
 const taint = @import("taint");
 const crossfile = @import("crossfile");
 const web = @import("web");
@@ -20,7 +21,7 @@ const cache = @import("cache");
 const stderr = std.io.getStdErr().writer();
 const stdout = std.io.getStdOut().writer();
 
-const Format = enum { text, json_sarif };
+const Format = enum { text, json_sarif, agent };
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -60,7 +61,7 @@ fn printUsage() !void {
         \\
         \\Scan Options:
         \\  --config, -c <path>          Rules file (required)
-        \\  --format, -f <text|sarif>    Output format (default: text)
+        \\  --format, -f <format>        Output format: text, sarif, agent (default: text)
         \\  --max-tier <0-3>             Maximum rule tier to run (default: all)
         \\
         \\Serve Options:
@@ -102,8 +103,10 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
                 format = .json_sarif;
             } else if (std.mem.eql(u8, args[i], "text")) {
                 format = .text;
+            } else if (std.mem.eql(u8, args[i], "agent") or std.mem.eql(u8, args[i], "json")) {
+                format = .agent;
             } else {
-                try stderr.print("Unknown format: {s} (use 'text' or 'sarif')\n", .{args[i]});
+                try stderr.print("Unknown format: {s} (use 'text', 'sarif', or 'agent')\n", .{args[i]});
                 std.process.exit(1);
             }
         } else if (std.mem.eql(u8, args[i], "--max-tier")) {
@@ -173,6 +176,14 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
     var parser = try ts.Parser.init();
     defer parser.deinit();
 
+    // Source content map for agent output (file path → source text)
+    var source_map = std.StringHashMap([]const u8).init(allocator);
+    defer {
+        var it = source_map.iterator();
+        while (it.next()) |entry| allocator.free(entry.value_ptr.*);
+        source_map.deinit();
+    }
+
     // Scan each file, collect results
     var all_file_results = std.ArrayList(sarif.FileFindings).init(allocator);
     defer {
@@ -196,6 +207,11 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
             continue;
         };
         defer allocator.free(source);
+
+        // Store source for agent output context
+        if (format == .agent) {
+            try source_map.put(file_path, try allocator.dupe(u8, source));
+        }
 
         const key = cache.cacheKey(source, rules_h);
 
@@ -382,13 +398,26 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
         }
     }
 
-    // SARIF output (written after all files are scanned)
+    // Structured output (written after all files are scanned)
     if (format == .json_sarif) {
         try sarif.writeSarif(stdout, all_file_results.items, compiled);
     }
 
     const elapsed = timer.read();
     const elapsed_us = @as(f64, @floatFromInt(elapsed)) / 1000.0;
+    const elapsed_ms = elapsed_us / 1000.0;
+
+    if (format == .agent) {
+        // Agent JSON: structured output with context, categories, confidence, fixes
+        const AgentFileResult = struct { path: []const u8, findings: []const matcher.Finding };
+        var agent_results = std.ArrayList(AgentFileResult).init(allocator);
+        defer agent_results.deinit();
+        for (all_file_results.items) |fr| {
+            try agent_results.append(.{ .path = fr.path, .findings = fr.findings });
+        }
+        try agent_output.writeAgentJson(stdout, agent_results.items, files_scanned, elapsed_ms, &source_map);
+        try stdout.writeAll("\n");
+    }
 
     if (cache_hits > 0) {
         try stderr.print("\nScanned {d} file(s) in {d:.1}μs — {d} finding(s) ({d} cached)\n", .{
