@@ -275,20 +275,18 @@ fn lhsMatchesSecretHint(tree: *const zir.ZirTree, assign_id: zir.NodeId) bool {
     var lhs_name: ?[]const u8 = null;
     var rhs_value: ?[]const u8 = null;
 
-    // Search depth 2 for LHS name and RHS value
+    // Search depth 3 for LHS name and RHS value
+    // Handles Python (1), JS lexical_declaration (2), Go var_declaration (2-3)
     for (tree.nodes.items, 0..) |child, child_idx| {
         if (child.parent) |pid| {
             if (pid == assign_id) {
-                // LHS: first identifier
                 if (child.kind == .identifier and lhs_name == null) {
                     if (child.atom) |aid| lhs_name = tree.atoms.get(aid);
                 }
-                // RHS: literal value
-                if (child.kind == .literal) {
+                if (child.kind == .literal and rhs_value == null) {
                     if (child.atom) |aid| rhs_value = tree.atoms.get(aid);
                 }
-                // Grandchildren (JS: lexical_declaration → variable_declarator → ...)
-                for (tree.nodes.items) |gc| {
+                for (tree.nodes.items, 0..) |gc, gc_idx| {
                     if (gc.parent) |gpid| {
                         if (gpid == @as(zir.NodeId, @intCast(child_idx))) {
                             if (gc.kind == .identifier and lhs_name == null) {
@@ -296,6 +294,18 @@ fn lhsMatchesSecretHint(tree: *const zir.ZirTree, assign_id: zir.NodeId) bool {
                             }
                             if (gc.kind == .literal and rhs_value == null) {
                                 if (gc.atom) |aid| rhs_value = tree.atoms.get(aid);
+                            }
+                            for (tree.nodes.items) |ggc| {
+                                if (ggc.parent) |ggpid| {
+                                    if (ggpid == @as(zir.NodeId, @intCast(gc_idx))) {
+                                        if (ggc.kind == .identifier and lhs_name == null) {
+                                            if (ggc.atom) |aid| lhs_name = tree.atoms.get(aid);
+                                        }
+                                        if (ggc.kind == .literal and rhs_value == null) {
+                                            if (ggc.atom) |aid| rhs_value = tree.atoms.get(aid);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

@@ -443,7 +443,8 @@ fn lhsMatchesSecretHintIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, 
     var lhs_name: ?[]const u8 = null;
     var rhs_value: ?[]const u8 = null;
 
-    // Search depth 2 for LHS name and RHS value
+    // Search depth 3 for LHS name and RHS value
+    // Handles: Python (depth 1), JS lexical_declaration (depth 2), Go var_declaration (depth 2-3)
     for (ci.children(assign_id)) |child_id| {
         const child = tree.nodes.items[child_id];
         if (child.kind == .identifier and lhs_name == null) {
@@ -452,7 +453,6 @@ fn lhsMatchesSecretHintIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, 
         if (child.kind == .literal and rhs_value == null) {
             if (child.atom) |aid| rhs_value = tree.atoms.get(aid);
         }
-        // Grandchildren (JS: lexical_declaration → variable_declarator → ...)
         for (ci.children(child_id)) |gc_id| {
             const gc = tree.nodes.items[gc_id];
             if (gc.kind == .identifier and lhs_name == null) {
@@ -460,6 +460,16 @@ fn lhsMatchesSecretHintIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, 
             }
             if (gc.kind == .literal and rhs_value == null) {
                 if (gc.atom) |aid| rhs_value = tree.atoms.get(aid);
+            }
+            // Depth 3
+            for (ci.children(gc_id)) |ggc_id| {
+                const ggc = tree.nodes.items[ggc_id];
+                if (ggc.kind == .identifier and lhs_name == null) {
+                    if (ggc.atom) |aid| lhs_name = tree.atoms.get(aid);
+                }
+                if (ggc.kind == .literal and rhs_value == null) {
+                    if (ggc.atom) |aid| rhs_value = tree.atoms.get(aid);
+                }
             }
         }
     }
