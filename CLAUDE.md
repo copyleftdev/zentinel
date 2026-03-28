@@ -11,7 +11,7 @@ Phase 1 MVP — **Complete**. Tier 1–3 + custom sources — **Complete**. All 
 - **Language:** Zig 0.14.0 (scanning Python, JavaScript, Go, TypeScript)
 - **Lines of code:** ~5,200 (11 src modules + 16 hypothesis tests)
 - **Test fixtures:** Python, JavaScript, Go, TypeScript (clean + broken + vulnerable + safe)
-- **Hypothesis tests:** 17/17 confirmed
+- **Hypothesis tests:** 18/18 confirmed
 
 ## Hypothesis Results (2026-03-27)
 
@@ -34,6 +34,7 @@ Phase 1 MVP — **Complete**. Tier 1–3 + custom sources — **Complete**. All 
 | H15 | Intra-procedural taint tracking | CONFIRMED (8/8) | Param→sink, assignment chain, f-string, cross-lang, 75μs/analysis |
 | H16 | Cross-file taint tracking | CONFIRMED (5/5) | Import→call→sink across files, one-hop, 0.4μs/analysis |
 | H17 | Custom taint sources/sinks | CONFIRMED (6/6) | YAML sources: field, source→taint→sink, backward compat |
+| H18 | Columnar ZIR storage | CONFIRMED (5/5) | 57x warm speedup, round-trip fidelity, zero-copy ChildIndex |
 
 ### Known Gaps
 
@@ -48,6 +49,7 @@ zentinel/
 ├── build.zig              # Build system — compiles grammars + all targets
 ├── src/
 │   ├── taint.zig          # Tier 2 taint analysis (intra-procedural data flow)
+│   ├── columnar.zig       # Columnar mmap ZIR storage (57x warm scan speedup)
 │   ├── crossfile.zig      # Tier 3 cross-file analysis (import→call→sink)
 │   ├── fast_matcher.zig    # Indexed matcher (SIMD hash, atom→rules dispatch)
 │   ├── main.zig           # CLI entry point (zent scan --format text|sarif)

@@ -83,6 +83,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "h15_taint_tracking", .path = "hypothesis/h15_taint_tracking.zig" },
         .{ .name = "h16_crossfile_taint", .path = "hypothesis/h16_crossfile_taint.zig" },
         .{ .name = "h17_custom_sources", .path = "hypothesis/h17_custom_sources.zig" },
+        .{ .name = "h18_columnar_zir", .path = "hypothesis/h18_columnar_zir.zig" },
     };
 
     // Shared module for ZIR types used across hypotheses
@@ -152,6 +153,13 @@ pub fn build(b: *std.Build) void {
     web_mod.addImport("fast_matcher", fast_matcher_mod);
     web_mod.addImport("taint", taint_mod);
 
+    const columnar_mod = b.addModule("columnar", .{
+        .root_source_file = .{ .cwd_relative = "src/columnar.zig" },
+    });
+    columnar_mod.addImport("zir", zir_mod);
+    columnar_mod.addImport("fast_matcher", fast_matcher_mod);
+    columnar_mod.addImport("normalizer", normalizer_mod);
+
     const cache_mod = b.addModule("cache", .{
         .root_source_file = .{ .cwd_relative = "src/cache.zig" },
     });
@@ -186,6 +194,7 @@ pub fn build(b: *std.Build) void {
     zent.root_module.addImport("taint", taint_mod);
     zent.root_module.addImport("crossfile", crossfile_mod);
     zent.root_module.addImport("web", web_mod);
+    zent.root_module.addImport("columnar", columnar_mod);
     zent.root_module.addImport("cache", cache_mod);
     b.installArtifact(zent);
 
@@ -267,6 +276,7 @@ pub fn build(b: *std.Build) void {
         exe.root_module.addImport("fast_matcher", fast_matcher_mod);
         exe.root_module.addImport("taint", taint_mod);
         exe.root_module.addImport("crossfile", crossfile_mod);
+        exe.root_module.addImport("columnar", columnar_mod);
         exe.root_module.addImport("cache", cache_mod);
 
         b.installArtifact(exe);

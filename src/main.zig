@@ -14,6 +14,7 @@ const sarif = @import("sarif");
 const taint = @import("taint");
 const crossfile = @import("crossfile");
 const web = @import("web");
+const columnar = @import("columnar");
 const cache = @import("cache");
 
 const stderr = std.io.getStdErr().writer();
@@ -221,19 +222,67 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
             continue;
         }
 
-        // Cache miss — full scan
-        try parser.setLanguage(lang.ts_lang);
-        var tree = try parser.parse(source);
-        defer tree.deinit();
+        // Cache miss — check ZIR cache first
+        const zir_key = columnar.zirCacheKey(source);
+        var zir_path_buf: [256]u8 = undefined;
+        const zir_path = columnar.zirCachePath(zir_key, &zir_path_buf);
 
-        var ztree = zir.ZirTree.init(allocator, lang.name);
+        var ztree: zir.ZirTree = undefined;
+        var ztree_from_columnar = false;
+
+        if (std.fs.cwd().readFileAlloc(allocator, zir_path, 10 * 1024 * 1024)) |zir_data| {
+            // ZIR cache hit — deserialize columnar
+            if (columnar.deserialize(zir_data, allocator)) |ct| {
+                var ct_mut = ct;
+                ztree = ct_mut.toZirTree(allocator) catch blk: {
+                    ct_mut.deinit();
+                    allocator.free(zir_data);
+                    break :blk zir.ZirTree.init(allocator, lang.name);
+                };
+                ct_mut.deinit();
+                ztree_from_columnar = true;
+            } else |_| {
+                ztree = zir.ZirTree.init(allocator, lang.name);
+            }
+            allocator.free(zir_data);
+
+            if (!ztree_from_columnar) {
+                // Deserialization failed — parse normally
+                try parser.setLanguage(lang.ts_lang);
+                var tree2 = try parser.parse(source);
+                defer tree2.deinit();
+                try normalizer.buildZir(&ztree, &tree2.rootNode(), null, lang.ts_lang);
+            }
+        } else |_| {
+            // ZIR cache miss — parse and normalize
+            try parser.setLanguage(lang.ts_lang);
+            var tree2 = try parser.parse(source);
+            defer tree2.deinit();
+            ztree = zir.ZirTree.init(allocator, lang.name);
+            try normalizer.buildZir(&ztree, &tree2.rootNode(), null, lang.ts_lang);
+        }
         defer ztree.deinit();
-        try normalizer.buildZir(&ztree, &tree.rootNode(), null, lang.ts_lang);
+
+        // Build ChildIndex + write ZIR cache if this was a fresh parse
+        var ci = try fast_matcher.ChildIndex.build(&ztree, allocator);
+        defer ci.deinit(allocator);
+
+        if (!ztree_from_columnar) {
+            // Write ZIR cache for next time
+            if (columnar.serialize(&ztree, &ci, allocator)) |serialized| {
+                defer allocator.free(serialized);
+                std.fs.cwd().makePath(".zentinel-cache") catch {};
+                if (std.fs.cwd().createFile(zir_path, .{})) |f| {
+                    defer f.close();
+                    f.writeAll(serialized) catch {};
+                } else |_| {}
+            } else |_| {}
+        }
 
         var findings_list = std.ArrayList(matcher.Finding).init(allocator);
 
         // Tier 0/1: structural + argument matching
-        const structural_findings = try fast_matcher.matchIndexed(&ztree, &rule_index, lang.name, allocator);
+        const structural_findings = try fast_matcher.matchWithIndex(&ztree, &rule_index, &ci, lang.name, allocator);
         try findings_list.appendSlice(structural_findings);
         allocator.free(structural_findings);
 
@@ -241,8 +290,6 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
         const tier2_sinks = try taint.extractSinks(compiled, lang.name, allocator);
         defer allocator.free(tier2_sinks);
         if (tier2_sinks.len > 0) {
-            var ci = try fast_matcher.ChildIndex.build(&ztree, allocator);
-            defer ci.deinit(allocator);
             const taint_findings = try taint.analyzeTaint(&ztree, &ci, tier2_sinks, lang.name, allocator);
             try findings_list.appendSlice(taint_findings);
             allocator.free(taint_findings);

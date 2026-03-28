@@ -1,3 +1,7 @@
+/// Normalizer version — bump when mapKind, classifyLiteral, or buildZir logic changes.
+/// Used by columnar ZIR cache to invalidate stale .zir files.
+pub const VERSION: u32 = 1;
+
 /// Normalizer — CST → ZIR conversion.
 /// Maps tree-sitter concrete syntax trees into Zentinel's language-agnostic
 /// intermediate representation (ZIR).
