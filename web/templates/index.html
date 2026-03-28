@@ -71,24 +71,65 @@ body { font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace; background
 
 /* Findings */
 .findings-section { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-.findings-section h3 { font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.1em; padding:0.75rem 1rem 0.4rem; }
+.findings-header { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid var(--border); }
+.findings-header h3 { font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.1em; margin:0; }
+.findings-header .sort-btns { display:flex; gap:0.3rem; }
+.findings-header .sort-btn { background:var(--surface2); border:1px solid var(--border); color:var(--dim); padding:2px 8px; font-family:inherit; font-size:0.6rem; border-radius:3px; cursor:pointer; }
+.findings-header .sort-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 .findings-section table { width:100%; border-collapse:collapse; font-size:0.75rem; }
-.findings-section th { text-align:left; padding:0.4rem 0.75rem; color:var(--dim); font-weight:500; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); }
-.findings-section td { padding:0.35rem 0.75rem; border-bottom:1px solid var(--border); max-width:350px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.findings-section tr:hover td { background:var(--surface2); }
-.findings-scroll { max-height:500px; overflow-y:auto; }
-.sev { font-weight:700; font-size:0.65rem; padding:2px 6px; border-radius:3px; }
+.findings-section th { text-align:left; padding:0.45rem 0.75rem; color:var(--dim); font-weight:500; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); z-index:1; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.05em; }
+.findings-section td { padding:0.4rem 0.75rem; border-bottom:1px solid var(--border); }
+.findings-scroll { max-height:600px; overflow-y:auto; }
+.findings-scroll::-webkit-scrollbar { width:6px; }
+.findings-scroll::-webkit-scrollbar-track { background:var(--surface); }
+.findings-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+.findings-scroll::-webkit-scrollbar-thumb:hover { background:var(--dim); }
+
+/* Severity badges */
+.sev { font-weight:700; font-size:0.6rem; padding:2px 8px; border-radius:3px; letter-spacing:0.03em; }
 .sev-ERROR { background:rgba(255,77,106,0.15); color:var(--error); }
 .sev-WARNING { background:rgba(255,184,77,0.15); color:var(--warning); }
 .sev-INFO { background:rgba(77,212,255,0.15); color:var(--info); }
 
 /* File groups */
-.file-group { cursor:pointer; }
-.file-group td { background:var(--surface2); font-weight:600; color:var(--accent); }
-.file-group td:first-child::before { content:''; margin-right:4px; }
+.file-group { cursor:pointer; user-select:none; }
+.file-group:hover td { background:rgba(77,122,255,0.08); }
+.file-group td { background:var(--surface2); padding:0.5rem 0.75rem; border-bottom:1px solid var(--border); }
+.file-name { font-weight:600; color:var(--text); }
+.file-path { color:var(--dim); font-weight:400; }
+.file-badge { font-size:0.6rem; padding:1px 6px; border-radius:8px; margin-left:0.5rem; font-weight:600; }
+.file-badge-error { background:rgba(255,77,106,0.2); color:var(--error); }
+.file-badge-warning { background:rgba(255,184,77,0.2); color:var(--warning); }
+.file-badge-info { background:rgba(77,212,255,0.2); color:var(--info); }
+.file-chevron { display:inline-block; transition:transform 0.15s; margin-right:0.4rem; color:var(--dim); font-size:0.7rem; }
+.file-group.collapsed .file-chevron { transform:rotate(-90deg); }
+
+/* Finding rows */
+.finding-row td { border-left:3px solid transparent; }
+.finding-row.sev-border-ERROR td:first-child { border-left-color:var(--error); }
+.finding-row.sev-border-WARNING td:first-child { border-left-color:var(--warning); }
+.finding-row.sev-border-INFO td:first-child { border-left-color:var(--info); }
+.finding-row:hover td { background:var(--surface2); }
+.finding-row td.line-cell { color:var(--dim); font-variant-numeric:tabular-nums; }
+.finding-row td.rule-cell { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.finding-row td.msg-cell { color:var(--dim); max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.7rem; }
+.finding-row.expanded td.msg-cell { white-space:normal; overflow:visible; color:var(--text); }
+.finding-row { cursor:pointer; }
 
 /* Category pills */
-.cat-pill { font-size:0.6rem; padding:1px 5px; border-radius:3px; background:rgba(77,122,255,0.15); color:var(--accent); }
+.cat-pill { font-size:0.55rem; padding:1px 6px; border-radius:3px; cursor:pointer; transition:background 0.15s; text-transform:uppercase; letter-spacing:0.04em; }
+.cat-pill:hover { filter:brightness(1.3); }
+.cat-cmd { background:rgba(255,77,106,0.12); color:var(--error); }
+.cat-code { background:rgba(255,130,77,0.12); color:#ff824d; }
+.cat-crypto { background:rgba(77,212,255,0.12); color:var(--info); }
+.cat-secrets { background:rgba(255,184,77,0.12); color:var(--warning); }
+.cat-deser { background:rgba(200,77,255,0.12); color:#c84dff; }
+.cat-xss { background:rgba(255,77,180,0.12); color:#ff4db4; }
+.cat-sql { background:rgba(255,77,106,0.12); color:var(--error); }
+.cat-net { background:rgba(77,255,136,0.12); color:var(--success); }
+.cat-file { background:rgba(77,122,255,0.12); color:var(--accent); }
+.cat-ai { background:rgba(155,77,255,0.12); color:#9b4dff; }
+.cat-other { background:rgba(107,107,128,0.12); color:var(--dim); }
 </style>
 </head>
 <body>
@@ -146,10 +187,17 @@ body { font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace; background
   </div>
 
   <div class="findings-section">
-    <h3 id="findingsTitle">Findings</h3>
+    <div class="findings-header">
+      <h3 id="findingsTitle">Findings</h3>
+      <div class="sort-btns">
+        <button class="sort-btn active" onclick="setSort('file',this)">By File</button>
+        <button class="sort-btn" onclick="setSort('severity',this)">By Severity</button>
+        <button class="sort-btn" onclick="setSort('category',this)">By Category</button>
+      </div>
+    </div>
     <div class="findings-scroll">
       <table>
-        <thead><tr><th>File</th><th>Line</th><th>Severity</th><th>Category</th><th>Rule</th><th>Message</th></tr></thead>
+        <thead><tr><th style="width:30px"></th><th>Line</th><th>Severity</th><th>Category</th><th>Rule</th><th>Message</th></tr></thead>
         <tbody id="findingsBody"></tbody>
       </table>
     </div>
@@ -342,39 +390,110 @@ function filterBySev(sev) {
   applyFilters();
 }
 
+let currentSort = 'file';
+
+function setSort(mode, btn) {
+  currentSort = mode;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFindings();
+}
+
+const CAT_CLASSES = {
+  'Command Injection':'cat-cmd', 'Code Injection':'cat-code', 'Cryptography':'cat-crypto',
+  'Secrets':'cat-secrets', 'Deserialization':'cat-deser', 'XSS / DOM':'cat-xss',
+  'SQL Injection':'cat-sql', 'Network':'cat-net', 'File System':'cat-file',
+  'AI / LLM':'cat-ai', 'Other':'cat-other'
+};
+
+function catClass(cat) { return CAT_CLASSES[cat] || 'cat-other'; }
+
+const SEV_ORDER = { ERROR:0, WARNING:1, INFO:2 };
+
 function renderFindings() {
   const filtered = getFiltered();
   document.getElementById('filterCount').textContent = `${filtered.length} of ${scanData.findings.length}`;
   document.getElementById('findingsTitle').textContent = `Findings (${filtered.length})`;
 
-  // Group by file
-  const byFile = {};
-  filtered.forEach(f => { (byFile[f.file] = byFile[f.file]||[]).push(f); });
+  // Group findings
+  const groups = {};
+  let groupKey;
+  if (currentSort === 'severity') groupKey = f => f.severity;
+  else if (currentSort === 'category') groupKey = f => f.category;
+  else groupKey = f => f.file;
+
+  filtered.forEach(f => { const k = groupKey(f); (groups[k] = groups[k]||[]).push(f); });
+
+  // Sort groups
+  let sortedKeys;
+  if (currentSort === 'severity') {
+    sortedKeys = Object.keys(groups).sort((a,b) => (SEV_ORDER[a]||9) - (SEV_ORDER[b]||9));
+  } else {
+    sortedKeys = Object.keys(groups).sort((a,b) => groups[b].length - groups[a].length);
+  }
 
   const tbody = document.getElementById('findingsBody');
   let html = '';
-  const sortedFiles = Object.keys(byFile).sort((a,b) => byFile[b].length - byFile[a].length);
 
-  for (const file of sortedFiles.slice(0, 50)) {
-    const findings = byFile[file];
-    const shortFile = file.split('/').slice(-3).join('/');
-    html += `<tr class="file-group" onclick="this.classList.toggle('collapsed');let s=this.nextElementSibling;while(s&&!s.classList.contains('file-group')){s.style.display=s.style.display==='none'?'':'none';s=s.nextElementSibling;}">
-      <td colspan="6">${shortFile} (${findings.length})</td></tr>`;
-    for (const f of findings.slice(0, 50)) {
-      html += `<tr>
+  for (const key of sortedKeys.slice(0, 80)) {
+    const items = groups[key];
+
+    // Sort findings within group by line
+    items.sort((a,b) => a.line - b.line);
+
+    // Group header
+    const errCount = items.filter(f => f.severity==='ERROR').length;
+    const warnCount = items.filter(f => f.severity==='WARNING').length;
+    const infoCount = items.filter(f => f.severity==='INFO').length;
+
+    let label;
+    if (currentSort === 'file') {
+      const parts = key.split('/');
+      const name = parts.pop();
+      const dir = parts.slice(-2).join('/');
+      label = dir ? `<span class="file-path">${esc(dir)}/</span><span class="file-name">${esc(name)}</span>` : `<span class="file-name">${esc(name)}</span>`;
+    } else if (currentSort === 'severity') {
+      label = `<span class="sev sev-${key}">${key}</span>`;
+    } else {
+      label = `<span class="cat-pill ${catClass(key)}">${key}</span>`;
+    }
+
+    let badges = '';
+    if (errCount) badges += `<span class="file-badge file-badge-error">${errCount}</span>`;
+    if (warnCount) badges += `<span class="file-badge file-badge-warning">${warnCount}</span>`;
+    if (infoCount) badges += `<span class="file-badge file-badge-info">${infoCount}</span>`;
+
+    const gid = 'g-' + key.replace(/[^a-zA-Z0-9]/g, '_');
+    html += `<tr class="file-group" data-gid="${gid}" onclick="toggleGroup('${gid}',this)">
+      <td colspan="6"><span class="file-chevron">&#9662;</span>${label}${badges}<span style="color:var(--dim);font-size:0.65rem;margin-left:0.5rem">${items.length} finding${items.length!==1?'s':''}</span></td></tr>`;
+
+    for (const f of items.slice(0, 100)) {
+      const ruleName = f.rule_id.split('.').pop();
+      html += `<tr class="finding-row sev-border-${f.severity}" data-group="${gid}" onclick="this.classList.toggle('expanded')">
         <td></td>
-        <td>${f.line}</td>
+        <td class="line-cell">${f.line}:${f.col}</td>
         <td><span class="sev sev-${f.severity}">${f.severity}</span></td>
-        <td><span class="cat-pill">${f.category}</span></td>
-        <td title="${f.rule_id}">${f.rule_id.split('.').pop().substring(0,25)}</td>
-        <td title="${esc(f.message)}">${esc(f.message).substring(0,90)}</td>
+        <td><span class="cat-pill ${catClass(f.category)}" onclick="event.stopPropagation();document.getElementById('filterSearch').value='${f.category}';applyFilters();">${f.category}</span></td>
+        <td class="rule-cell" title="${esc(f.rule_id)}">${esc(ruleName)}</td>
+        <td class="msg-cell" title="${esc(f.message)}">${esc(f.message)}</td>
       </tr>`;
     }
-    if (findings.length > 50) html += `<tr><td colspan="6" style="color:var(--dim);text-align:center;font-size:0.7rem">... ${findings.length-50} more in this file</td></tr>`;
+    if (items.length > 100) {
+      html += `<tr data-group="${gid}"><td colspan="6" style="color:var(--dim);text-align:center;font-size:0.65rem;padding:0.3rem">+${items.length-100} more</td></tr>`;
+    }
   }
-  if (sortedFiles.length > 50) html += `<tr><td colspan="6" style="color:var(--dim);text-align:center">... ${sortedFiles.length-50} more files</td></tr>`;
+  if (sortedKeys.length > 80) {
+    html += `<tr><td colspan="6" style="color:var(--dim);text-align:center;font-size:0.7rem;padding:0.5rem">+${sortedKeys.length-80} more groups</td></tr>`;
+  }
 
   tbody.innerHTML = html;
+}
+
+function toggleGroup(gid, header) {
+  header.classList.toggle('collapsed');
+  document.querySelectorAll(`tr[data-group="${gid}"]`).forEach(r => {
+    r.style.display = header.classList.contains('collapsed') ? 'none' : '';
+  });
 }
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
