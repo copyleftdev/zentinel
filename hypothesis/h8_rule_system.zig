@@ -57,6 +57,8 @@ pub fn main() !void {
             .call => "call",
             .assignment => "assignment",
             .member_call => "member_call",
+            .call_with_args => "call_with_args",
+            .member_call_with_args => "member_call_with_args",
         };
         try out.print("  Compiled: {s} → {s}\n", .{ cr.rule.id, pat_type });
     }

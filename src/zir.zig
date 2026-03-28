@@ -2,6 +2,19 @@
 /// A unified, language-agnostic AST for semantic analysis.
 const std = @import("std");
 
+/// Sub-classification for literal nodes — what type of value.
+/// Packed into upper 4 bits of Node.flags (bits 4–7).
+pub const LiteralKind = enum(u4) {
+    string, // "...", '...' (includes raw/byte strings)
+    number_int, // 42, 0xFF
+    number_float, // 3.14, 1e10
+    boolean, // true, false, True, False
+    null_value, // null, None, undefined
+    regex, // /pattern/ (JS)
+    collection, // [], {}, ()
+    unknown, // could not classify
+};
+
 /// Normalized node kinds — language-agnostic.
 pub const Kind = enum(u8) {
     module, // top-level / program
@@ -47,10 +60,20 @@ pub const Node = struct {
     atom: ?AtomId, // interned string (identifier name, literal value)
     parent: ?NodeId,
 
-    // Flags
+    // Flags (bits 0–2)
     pub const FLAG_ERROR = 1 << 0; // node or ancestor had parse error
     pub const FLAG_MISSING = 1 << 1; // tree-sitter inserted a missing node
     pub const FLAG_NAMED = 1 << 2; // tree-sitter named node
+
+    // LiteralKind is packed into bits 4–7 of flags
+    pub const LITERAL_KIND_SHIFT = 4;
+    pub const LITERAL_KIND_MASK: u32 = 0xF0;
+
+    /// Returns the literal sub-type, or null if this node is not a literal.
+    pub fn literalKind(self: *const Node) ?LiteralKind {
+        if (self.kind != .literal) return null;
+        return @enumFromInt(@as(u4, @intCast((self.flags & LITERAL_KIND_MASK) >> LITERAL_KIND_SHIFT)));
+    }
 };
 
 /// Interned string table for atoms (identifiers, literals).

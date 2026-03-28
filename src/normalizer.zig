@@ -135,6 +135,34 @@ fn eq(a: []const u8, b: []const u8) bool {
     return std.mem.eql(u8, a, b);
 }
 
+/// Classify a literal node's sub-type from its tree-sitter CST node type.
+pub fn classifyLiteral(node_type: []const u8, lang: ts.Language) zir.LiteralKind {
+    return switch (lang) {
+        .python => classifyLiteralPython(node_type),
+        .javascript => classifyLiteralJavaScript(node_type),
+    };
+}
+
+fn classifyLiteralPython(t: []const u8) zir.LiteralKind {
+    if (eq(t, "string")) return .string;
+    if (eq(t, "integer")) return .number_int;
+    if (eq(t, "float")) return .number_float;
+    if (eq(t, "true") or eq(t, "false")) return .boolean;
+    if (eq(t, "none")) return .null_value;
+    if (eq(t, "list") or eq(t, "dictionary") or eq(t, "tuple")) return .collection;
+    return .unknown;
+}
+
+fn classifyLiteralJavaScript(t: []const u8) zir.LiteralKind {
+    if (eq(t, "string") or eq(t, "string_fragment")) return .string;
+    if (eq(t, "number")) return .number_int; // JS has single Number type; default to int
+    if (eq(t, "true") or eq(t, "false")) return .boolean;
+    if (eq(t, "null") or eq(t, "undefined")) return .null_value;
+    if (eq(t, "regex")) return .regex;
+    if (eq(t, "object")) return .collection;
+    return .unknown;
+}
+
 /// Convert a tree-sitter CST into ZIR. Unmapped or error nodes become Kind.unknown.
 pub fn buildZir(tree: *zir.ZirTree, node: *const ts.Node, parent_id: ?zir.NodeId, lang: ts.Language) !void {
     return buildZirInner(tree, node, parent_id, lang, false);
@@ -234,6 +262,14 @@ fn emitNode(tree: *zir.ZirTree, node: *const ts.Node, parent_id: ?zir.NodeId, la
         }
     }
 
+    // Python: string nodes wrapping f-strings (f"..." / f'...') should be string_template
+    if (lang == .python and kind == .literal) {
+        const text = node.text();
+        if (text.len >= 2 and (text[0] == 'f' or text[0] == 'F') and (text[1] == '"' or text[1] == '\'')) {
+            kind = .string_template;
+        }
+    }
+
     const sp = node.startPoint();
     const ep = node.endPoint();
     const span = zir.Span{
@@ -245,7 +281,7 @@ fn emitNode(tree: *zir.ZirTree, node: *const ts.Node, parent_id: ?zir.NodeId, la
         .end_col = ep.column,
     };
 
-    const atom: ?zir.AtomId = if (kind == .identifier or (kind == .literal and node.namedChildCount() == 0))
+    const atom: ?zir.AtomId = if (kind == .identifier or kind == .literal)
         try tree.atoms.intern(node.text())
     else
         null;
@@ -254,6 +290,12 @@ fn emitNode(tree: *zir.ZirTree, node: *const ts.Node, parent_id: ?zir.NodeId, la
     if (node.hasError()) flags |= zir.Node.FLAG_ERROR;
     if (node.isMissing()) flags |= zir.Node.FLAG_MISSING;
     if (node.isNamed()) flags |= zir.Node.FLAG_NAMED;
+
+    // Tier 1: classify literal sub-type from CST node type
+    if (kind == .literal) {
+        const lit_kind = classifyLiteral(node.nodeType(), lang);
+        flags |= @as(u32, @intFromEnum(lit_kind)) << zir.Node.LITERAL_KIND_SHIFT;
+    }
 
     return tree.addNode(kind, span, atom, parent_id, &.{}, flags);
 }

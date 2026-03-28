@@ -47,6 +47,10 @@ pub fn build(b: *std.Build) void {
         .{ .name = "h8_rule_system", .path = "hypothesis/h8_rule_system.zig" },
         .{ .name = "h9_ground_truth", .path = "hypothesis/h9_ground_truth.zig" },
         .{ .name = "h10_indexed_matcher", .path = "hypothesis/h10_indexed_matcher.zig" },
+        .{ .name = "h11_literal_classification", .path = "hypothesis/h11_literal_classification.zig" },
+        .{ .name = "h12_assignment_precision", .path = "hypothesis/h12_assignment_precision.zig" },
+        .{ .name = "h13_argument_constraints", .path = "hypothesis/h13_argument_constraints.zig" },
+        .{ .name = "h14_tier_enforcement", .path = "hypothesis/h14_tier_enforcement.zig" },
     };
 
     // Shared module for ZIR types used across hypotheses

@@ -54,6 +54,7 @@ fn printUsage() !void {
         \\Scan Options:
         \\  --config, -c <path>          Rules file (required)
         \\  --format, -f <text|sarif>    Output format (default: text)
+        \\  --max-tier <0-3>             Maximum rule tier to run (default: all)
         \\
         \\Examples:
         \\  zent scan src/*.py --config rules.yaml
@@ -67,6 +68,7 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
     defer files.deinit();
     var config_path: ?[]const u8 = null;
     var format: Format = .text;
+    var max_tier: ?u8 = null;
 
     // Parse scan args
     var i: usize = 0;
@@ -92,6 +94,16 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
                 try stderr.print("Unknown format: {s} (use 'text' or 'sarif')\n", .{args[i]});
                 std.process.exit(1);
             }
+        } else if (std.mem.eql(u8, args[i], "--max-tier")) {
+            i += 1;
+            if (i >= args.len) {
+                try stderr.writeAll("Error: --max-tier requires a value (0-3)\n");
+                std.process.exit(1);
+            }
+            max_tier = std.fmt.parseInt(u8, args[i], 10) catch {
+                try stderr.print("Invalid tier value: {s} (use 0-3)\n", .{args[i]});
+                std.process.exit(1);
+            };
         } else if (args[i].len > 0 and args[i][0] == '-') {
             try stderr.print("Unknown option: {s}\n", .{args[i]});
             std.process.exit(1);
@@ -120,8 +132,18 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
     const rules = try rule.parseRules(yaml_source, allocator);
     defer allocator.free(rules);
 
-    const compiled = try rule.compileRules(rules, allocator);
-    defer allocator.free(compiled);
+    const all_compiled = try rule.compileRules(rules, allocator);
+    defer allocator.free(all_compiled);
+
+    // Filter by max tier if specified
+    const compiled = if (max_tier) |mt| blk: {
+        var filtered = std.ArrayList(rule.CompiledRule).init(allocator);
+        for (all_compiled) |cr| {
+            if (cr.rule.tier <= mt) try filtered.append(cr);
+        }
+        break :blk try filtered.toOwnedSlice();
+    } else all_compiled;
+    defer if (max_tier != null) allocator.free(compiled);
 
     const rules_h = cache.rulesHash(yaml_source);
 
@@ -129,7 +151,11 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
     var rule_index = try fast_matcher.RuleIndex.build(compiled, allocator);
     defer rule_index.deinit();
 
-    try stderr.print("Loaded {d} rules ({d} compiled)\n", .{ rules.len, compiled.len });
+    if (max_tier) |mt| {
+        try stderr.print("Loaded {d} rules ({d} compiled, tier <= {d})\n", .{ rules.len, compiled.len, mt });
+    } else {
+        try stderr.print("Loaded {d} rules ({d} compiled)\n", .{ rules.len, compiled.len });
+    }
 
     // Initialize parser
     var parser = try ts.Parser.init();

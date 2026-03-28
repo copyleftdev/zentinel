@@ -23,6 +23,7 @@ pub const Rule = struct {
     message: []const u8,
     languages: []const []const u8,
     severity: Severity,
+    tier: u8 = 0, // 0 = structural, 1 = local reasoning, 2 = intra-procedural, 3 = cross-file
 };
 
 pub const CallPattern = struct {
@@ -32,7 +33,8 @@ pub const CallPattern = struct {
 
 pub const AssignmentPattern = struct {
     lhs_is_metavar: bool, // $KEY → true
-    rhs_is_string_literal: bool, // "..." → true
+    rhs_is_string_literal: bool, // "..." → true (legacy, kept for backward compat)
+    rhs_literal_kind: ?zir.LiteralKind = null, // Tier 1: require specific literal type
 };
 
 pub const MemberCallPattern = struct {
@@ -41,10 +43,39 @@ pub const MemberCallPattern = struct {
     has_ellipsis: bool,
 };
 
+// ── Tier 1: Argument Constraints ──
+
+pub const ArgConstraintKind = enum {
+    ellipsis, // ...
+    any_string, // "..."
+    exact_string, // "md5"
+    string_template, // f"..."
+    identifier_value, // True, False, None, or any bare name
+};
+
+pub const ArgConstraint = struct {
+    kind: ArgConstraintKind,
+    keyword_name: ?[]const u8 = null, // non-null for keyword args (e.g., "shell" in shell=True)
+    value: ?[]const u8 = null, // for exact_string ("md5") or identifier_value ("True")
+};
+
+pub const CallWithArgsPattern = struct {
+    callee: []const u8,
+    constraints: []const ArgConstraint,
+};
+
+pub const MemberCallWithArgsPattern = struct {
+    object: []const u8,
+    method: []const u8,
+    constraints: []const ArgConstraint,
+};
+
 pub const CompiledPattern = union(enum) {
     call: CallPattern,
     assignment: AssignmentPattern,
     member_call: MemberCallPattern,
+    call_with_args: CallWithArgsPattern,
+    member_call_with_args: MemberCallWithArgsPattern,
 };
 
 pub const PrefilterReq = struct {
@@ -100,6 +131,7 @@ pub fn parseRules(yaml_source: []const u8, allocator: std.mem.Allocator) ![]Rule
                 .message = "",
                 .languages = &.{},
                 .severity = .ERROR,
+                .tier = 0,
             };
             continue;
         }
@@ -126,6 +158,11 @@ pub fn parseRules(yaml_source: []const u8, allocator: std.mem.Allocator) ![]Rule
 
         if (extractValue(line, "severity:")) |val| {
             current.?.severity = Severity.fromString(val) orelse .ERROR;
+            continue;
+        }
+
+        if (extractValue(line, "tier:")) |val| {
+            current.?.tier = std.fmt.parseInt(u8, val, 10) catch 0;
             continue;
         }
 
@@ -180,30 +217,150 @@ pub fn compilePattern(pattern_source: []const u8) CompileError!CompiledPattern {
 
     // Check for assignment pattern: contains "=" not inside parens
     if (detectAssignment(src)) {
+        const has_string_rhs = std.mem.indexOf(u8, src, "\"...\"") != null;
         return .{ .assignment = .{
             .lhs_is_metavar = src.len > 0 and src[0] == '$',
-            .rhs_is_string_literal = std.mem.indexOf(u8, src, "\"...\"") != null,
+            .rhs_is_string_literal = has_string_rhs,
+            .rhs_literal_kind = if (has_string_rhs) .string else null,
         } };
     }
 
+    // Extract args string for Tier 1 analysis
+    const paren_idx = std.mem.indexOfScalar(u8, src, '(') orelse return CompileError.UnsupportedPattern;
+    const close_idx = std.mem.lastIndexOfScalar(u8, src, ')') orelse return CompileError.UnsupportedPattern;
+    if (close_idx <= paren_idx) return CompileError.UnsupportedPattern;
+    const args_str = std.mem.trim(u8, src[paren_idx + 1 .. close_idx], &[_]u8{ ' ', '\t' });
+    const is_simple_ellipsis = std.mem.eql(u8, args_str, "...");
+
     // Check for member call: "object.method(...)"
     if (detectMemberCall(src)) |mc| {
-        return .{ .member_call = .{
+        if (is_simple_ellipsis or args_str.len == 0) {
+            return .{ .member_call = .{
+                .object = mc.object,
+                .method = mc.method,
+                .has_ellipsis = is_simple_ellipsis,
+            } };
+        }
+        // Tier 1: parse argument constraints
+        const constraints = parseArgConstraints(args_str) orelse return CompileError.UnsupportedPattern;
+        return .{ .member_call_with_args = .{
             .object = mc.object,
             .method = mc.method,
-            .has_ellipsis = std.mem.indexOf(u8, src, "...") != null,
+            .constraints = constraints,
         } };
     }
 
     // Check for simple call: "func(...)"
     if (detectCall(src)) |callee| {
-        return .{ .call = .{
+        if (is_simple_ellipsis or args_str.len == 0) {
+            return .{ .call = .{
+                .callee = callee,
+                .has_ellipsis = is_simple_ellipsis,
+            } };
+        }
+        // Tier 1: parse argument constraints
+        const constraints = parseArgConstraints(args_str) orelse return CompileError.UnsupportedPattern;
+        return .{ .call_with_args = .{
             .callee = callee,
-            .has_ellipsis = std.mem.indexOf(u8, src, "...") != null,
+            .constraints = constraints,
         } };
     }
 
     return CompileError.UnsupportedPattern;
+}
+
+/// Parse a comma-separated argument list into ArgConstraints.
+/// Returns null if parsing fails.
+fn parseArgConstraints(args_str: []const u8) ?[]const ArgConstraint {
+    // Use a static buffer — patterns have bounded arg count
+    const MAX_ARGS = 8;
+    var buf: [MAX_ARGS]ArgConstraint = undefined;
+    var count: usize = 0;
+
+    var start: usize = 0;
+    var depth: u32 = 0;
+    var i: usize = 0;
+
+    while (i <= args_str.len) : (i += 1) {
+        const at_end = i == args_str.len;
+        const ch = if (at_end) @as(u8, 0) else args_str[i];
+
+        if (ch == '(' or ch == '[' or ch == '{') {
+            depth += 1;
+        } else if (ch == ')' or ch == ']' or ch == '}') {
+            if (depth > 0) depth -= 1;
+        }
+
+        if ((ch == ',' and depth == 0) or at_end) {
+            const arg = std.mem.trim(u8, args_str[start..i], &[_]u8{ ' ', '\t' });
+            if (arg.len > 0 and count < MAX_ARGS) {
+                if (parseOneArg(arg)) |c| {
+                    buf[count] = c;
+                    count += 1;
+                }
+            }
+            start = i + 1;
+        }
+    }
+
+    if (count == 0) return null;
+
+    // Return a slice backed by static storage (lives as long as the pattern source string)
+    // We need to copy into persistent storage — use a comptime-sized array trick
+    const result = std.heap.page_allocator.alloc(ArgConstraint, count) catch return null;
+    @memcpy(result, buf[0..count]);
+    return result;
+}
+
+/// Parse a single argument token into an ArgConstraint.
+fn parseOneArg(arg: []const u8) ?ArgConstraint {
+    // "..." → ellipsis
+    if (std.mem.eql(u8, arg, "...")) {
+        return .{ .kind = .ellipsis };
+    }
+
+    // f"..." → string_template
+    if (arg.len >= 4 and arg[0] == 'f' and arg[1] == '"' and arg[arg.len - 1] == '"') {
+        return .{ .kind = .string_template };
+    }
+
+    // "..." (literal pattern) → any_string
+    if (arg.len >= 5 and arg[0] == '"' and std.mem.eql(u8, arg, "\"...\"")) {
+        return .{ .kind = .any_string };
+    }
+
+    // "value" → exact_string
+    if (arg.len >= 2 and arg[0] == '"' and arg[arg.len - 1] == '"') {
+        return .{ .kind = .exact_string, .value = arg[1 .. arg.len - 1] };
+    }
+
+    // keyword=value → keyword constraint
+    if (std.mem.indexOfScalar(u8, arg, '=')) |eq_idx| {
+        if (eq_idx > 0 and eq_idx + 1 < arg.len) {
+            // Check it's not ==
+            if (eq_idx + 1 < arg.len and arg[eq_idx + 1] == '=') return null;
+            const key = std.mem.trim(u8, arg[0..eq_idx], &[_]u8{ ' ', '\t' });
+            const val = std.mem.trim(u8, arg[eq_idx + 1 ..], &[_]u8{ ' ', '\t' });
+            if (key.len > 0 and val.len > 0) {
+                return .{
+                    .kind = .identifier_value,
+                    .keyword_name = key,
+                    .value = val,
+                };
+            }
+        }
+    }
+
+    // Bare identifier (True, False, None)
+    if (arg.len > 0 and isIdentChar(arg[0])) {
+        return .{ .kind = .identifier_value, .value = arg };
+    }
+
+    return null;
+}
+
+fn isIdentChar(c: u8) bool {
+    return (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or c == '_';
 }
 
 fn detectAssignment(src: []const u8) bool {
@@ -276,6 +433,16 @@ pub fn extractPrefilter(pattern: CompiledPattern, allocator: std.mem.Allocator) 
             try atoms.append(p.object);
             try atoms.append(p.method);
         },
+        .call_with_args => |p| {
+            try kinds.append(.call);
+            try atoms.append(p.callee);
+        },
+        .member_call_with_args => |p| {
+            try kinds.append(.call);
+            try kinds.append(.member_access);
+            try atoms.append(p.object);
+            try atoms.append(p.method);
+        },
     }
 
     return .{
@@ -297,8 +464,21 @@ pub fn compileRules(rules: []const Rule, allocator: std.mem.Allocator) ![]Compil
             }
         };
         const prefilter = try extractPrefilter(pattern, allocator);
+
+        // Auto-infer tier if not explicitly set
+        var effective_rule = r;
+        if (r.tier == 0) {
+            switch (pattern) {
+                .assignment => |ap| {
+                    if (ap.rhs_literal_kind != null) effective_rule.tier = 1;
+                },
+                .call_with_args, .member_call_with_args => effective_rule.tier = 1,
+                else => {},
+            }
+        }
+
         try compiled.append(.{
-            .rule = r,
+            .rule = effective_rule,
             .pattern = pattern,
             .prefilter = prefilter,
         });

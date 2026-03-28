@@ -6,12 +6,12 @@ Zentinel is a **Semantic Code Intelligence Engine (SCIE)** — Semgrep rebuilt f
 
 ## Project State
 
-Phase 1 MVP — **Complete**. All 9 components implemented. 8/8 hypotheses confirmed. 7/9 benchmarks passing.
+Phase 1 MVP — **Complete**. Tier 1 (local reasoning) — **Complete**. All 9 components implemented. 14/14 hypotheses confirmed. 10/12 benchmarks passing.
 
 - **Language:** Zig 0.14.0
-- **Lines of code:** ~3,200 (8 src modules + 8 hypothesis tests)
+- **Lines of code:** ~4,200 (8 src modules + 14 hypothesis tests)
 - **Test fixtures:** Python + JavaScript (clean + broken variants)
-- **Hypothesis tests:** 10/10 confirmed
+- **Hypothesis tests:** 14/14 confirmed
 
 ## Hypothesis Results (2026-03-27)
 
@@ -27,12 +27,14 @@ Phase 1 MVP — **Complete**. All 9 components implemented. 8/8 hypotheses confi
 | H8 | Rule system (YAML→match→findings) | CONFIRMED (7/7) | End-to-end: parse 5 rules, match Python+JS, cross-language |
 | H9 | Ground truth validation | CONFIRMED (8/8) | 36-rule corpus, 4 fixtures, zero FP/FN |
 | H10 | Indexed matcher (SIMD + ChildIndex) | CONFIRMED (2/2) | 20x faster, atom→rules dispatch + SIMD hash + O(1) child lookups |
+| H11 | Literal classification (LiteralKind) | CONFIRMED (13/13) | string/int/float/bool/null/regex/collection across Python+JS |
+| H12 | Assignment precision (Tier 1) | CONFIRMED (8/8) | `$KEY = "..."` rejects int/bool/null RHS; 62.5% FP reduction |
+| H13 | Argument constraints (Tier 1) | CONFIRMED (6/6) | keyword args, exact string, f-string/template — zero FP |
+| H14 | Tier enforcement + cost boundaries | CONFIRMED (5/5) | B-10: 1.08x, B-11: 0.97x, B-12: 2.0% overhead |
 
 ### Known Gaps
 
 - H7: Semgrep time includes Python startup (~500ms); Zentinel time excludes one-time rule loading (~200μs). Both use identical 20-rule YAML, both find 21 findings.
-- Assignment pattern (`$KEY = "..."`) over-matches: any assignment with identifier + literal, needs stricter string detection
-- `sql-injection-fstring` compiles as assignment pattern (should be Tier 1 — deferred)
 
 ## File Layout
 
@@ -55,7 +57,7 @@ zentinel/
 │   ├── python-security.yaml      # 20 Python security rules
 │   ├── javascript-security.yaml  # 13 JavaScript security rules
 │   └── universal-security.yaml   # 3 cross-language rules
-├── hypothesis/            # Hypothesis test executables (h1–h10)
+├── hypothesis/            # Hypothesis test executables (h1–h14)
 ├── test_fixtures/
 │   ├── python/            # clean.py, broken.py, vulnerable.py, safe.py
 │   ├── javascript/        # clean.js, broken.js, vulnerable.js, safe.js
@@ -95,13 +97,16 @@ zentinel/
 | B-07 | Memory usage | <50% of Semgrep | UNTESTED | — |
 | B-08 | Startup time | <50ms | ~1ms | PASS |
 | B-09 | Binary size | <40MB | 2.7MB | PASS |
+| B-10 | Tier 1 assignment vs Tier 0 | <2x | 1.08x | PASS |
+| B-11 | Arg constraint vs Tier 0 call | <3x | 0.97x | PASS |
+| B-12 | Tier enforcement overhead | <5% | 2.0% | PASS |
 
 ## Settled Architecture Decisions
 
 1. **Zig is the implementation language.** Single static binary, no runtime dependencies. C interop for tree-sitter.
 2. **Tree-sitter for parsing.** Error-tolerant, incremental, multi-language. Via C FFI, not native Zig parsers (for now).
 3. **ZIR is the unified intermediate representation.** Language-agnostic node types. All matching operates on ZIR, never on raw CST.
-4. **Tiered cost model.** Rules declare their cost tier (0–3). Engine never pays Tier 3 cost for Tier 0 rules.
+4. **Tiered cost model.** Rules declare their cost tier (0–3). Engine never pays Tier 3 cost for Tier 0 rules. Tier 0: structural matching. Tier 1: local reasoning (literal classification, argument constraints). Tier 2+: not yet implemented.
 5. **Prefilter before match.** File signatures (identifiers, node kinds) compared against rule requirements. Skip mismatches entirely.
 6. **Arena allocators for hot paths.** ZIR construction and matching use arena allocation. Reset per file, no individual frees.
 7. **Deterministic execution.** Same input → same output. Seeded scheduling. No nondeterministic traversal.
@@ -121,9 +126,10 @@ zentinel/
 
 ## Core Domain Types (src/zir.zig)
 
+- `LiteralKind` — Literal sub-types (enum u4): string, number_int, number_float, boolean, null_value, regex, collection, unknown. Packed into bits 4–7 of Node.flags.
 - `Kind` — Normalized node kinds: module, function, call, identifier, literal, assignment, import, member_access, control_flow, return_stmt, binary_op, unary_op, block, parameter, argument, class, attribute, comment, string_template, expression_stmt, unknown
 - `Span` — Byte offsets + row/col positions
-- `Node` — ZIR node: kind, span, flags, children, atom, parent
+- `Node` — ZIR node: kind, span, flags, children, atom, parent. `literalKind()` accessor for Tier 1.
 - `AtomTable` — Interned string table for identifiers and literals
 - `ZirTree` — Complete ZIR: nodes + atoms + source language
 

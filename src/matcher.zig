@@ -83,6 +83,8 @@ pub fn matchRules(
             .call => |p| try matchCall(tree, &cr, p, &findings),
             .assignment => |p| try matchAssignment(tree, &cr, p, &findings),
             .member_call => |p| try matchMemberCall(tree, &cr, p, &findings),
+            .call_with_args => |p| try matchCallWithArgs(tree, &cr, p, &findings),
+            .member_call_with_args => |p| try matchMemberCallWithArgs(tree, &cr, p, &findings),
         }
     }
 
@@ -131,6 +133,11 @@ fn matchAssignment(
         const rhs_ok = !pattern.rhs_is_string_literal or has_literal;
 
         if (lhs_ok and rhs_ok and has_identifier and has_literal) {
+            // Tier 1: check literal sub-type if required
+            if (pattern.rhs_literal_kind) |required_lk| {
+                if (!hasDescendantLiteralKind(tree, @intCast(idx), required_lk, 3)) continue;
+            }
+
             // Avoid duplicate findings from nested assignment nodes (JS lexical_declaration > variable_declarator)
             if (node.parent) |pid| {
                 if (tree.nodes.items[pid].kind == .assignment) continue;
@@ -230,6 +237,275 @@ fn hasDescendantKindInner(tree: *const zir.ZirTree, parent_id: zir.NodeId, kind:
                 if (hasDescendantKindInner(tree, @intCast(idx), kind, max_depth, depth + 1)) return true;
             }
         }
+    }
+    return false;
+}
+
+/// Tier 1: Check if a node has a descendant literal of the given LiteralKind within max_depth.
+fn hasDescendantLiteralKind(tree: *const zir.ZirTree, parent_id: zir.NodeId, lk: zir.LiteralKind, max_depth: u32) bool {
+    return hasDescendantLiteralKindInner(tree, parent_id, lk, max_depth, 0);
+}
+
+fn hasDescendantLiteralKindInner(tree: *const zir.ZirTree, parent_id: zir.NodeId, lk: zir.LiteralKind, max_depth: u32, depth: u32) bool {
+    if (depth >= max_depth) return false;
+    for (tree.nodes.items, 0..) |node, idx| {
+        if (node.parent) |pid| {
+            if (pid == parent_id) {
+                if (node.kind == .literal) {
+                    if (node.literalKind()) |k| {
+                        if (k == lk) return true;
+                    }
+                }
+                if (hasDescendantLiteralKindInner(tree, @intCast(idx), lk, max_depth, depth + 1)) return true;
+            }
+        }
+    }
+    return false;
+}
+
+// ── Tier 1: Argument-Constrained Matchers ──
+
+fn matchCallWithArgs(
+    tree: *const zir.ZirTree,
+    cr: *const rule.CompiledRule,
+    pattern: rule.CallWithArgsPattern,
+    findings: *std.ArrayList(Finding),
+) !void {
+    for (tree.nodes.items, 0..) |node, idx| {
+        if (node.kind != .call) continue;
+        if (!findCalleeInChildren(tree, @intCast(idx), pattern.callee)) continue;
+        if (checkArgConstraints(tree, @intCast(idx), pattern.constraints)) {
+            try findings.append(.{
+                .rule_id = cr.rule.id,
+                .message = cr.rule.message,
+                .severity = cr.rule.severity,
+                .node_id = @intCast(idx),
+                .span = node.span,
+            });
+        }
+    }
+}
+
+fn matchMemberCallWithArgs(
+    tree: *const zir.ZirTree,
+    cr: *const rule.CompiledRule,
+    pattern: rule.MemberCallWithArgsPattern,
+    findings: *std.ArrayList(Finding),
+) !void {
+    for (tree.nodes.items, 0..) |node, idx| {
+        if (node.kind != .call) continue;
+        if (!findMemberCallMatch(tree, @intCast(idx), pattern.object, pattern.method)) continue;
+        if (checkArgConstraints(tree, @intCast(idx), pattern.constraints)) {
+            try findings.append(.{
+                .rule_id = cr.rule.id,
+                .message = cr.rule.message,
+                .severity = cr.rule.severity,
+                .node_id = @intCast(idx),
+                .span = node.span,
+            });
+        }
+    }
+}
+
+/// Check argument constraints against a call node's argument children.
+fn checkArgConstraints(tree: *const zir.ZirTree, call_id: zir.NodeId, constraints: []const rule.ArgConstraint) bool {
+    // Collect argument child nodes (children of .argument nodes under the call)
+    var arg_nodes: [16]zir.NodeId = undefined;
+    var arg_count: usize = 0;
+
+    // Find argument list node (direct .argument child of call)
+    for (tree.nodes.items, 0..) |node, idx| {
+        if (node.parent) |pid| {
+            if (pid == call_id and node.kind == .argument) {
+                // Collect children of the argument list as individual args
+                for (tree.nodes.items, 0..) |arg_child, arg_idx| {
+                    if (arg_child.parent) |apid| {
+                        if (apid == @as(zir.NodeId, @intCast(idx)) and arg_count < 16) {
+                            arg_nodes[arg_count] = @intCast(arg_idx);
+                            arg_count += 1;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // Check each non-ellipsis constraint
+    for (constraints) |c| {
+        switch (c.kind) {
+            .ellipsis => continue, // ... matches anything
+            .any_string => {
+                // At least one arg must be a string literal
+                var found = false;
+                for (arg_nodes[0..arg_count]) |nid| {
+                    if (nodeIsStringLiteral(tree, nid)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) return false;
+            },
+            .exact_string => {
+                // At least one arg must be a literal with matching value
+                const target = c.value orelse continue;
+                var found = false;
+                for (arg_nodes[0..arg_count]) |nid| {
+                    if (nodeHasLiteralValue(tree, nid, target)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) return false;
+            },
+            .string_template => {
+                // At least one arg must be a string_template
+                var found = false;
+                for (arg_nodes[0..arg_count]) |nid| {
+                    if (nodeIsKindRecursive(tree, nid, .string_template)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) return false;
+            },
+            .identifier_value => {
+                if (c.keyword_name) |kw_name| {
+                    // Keyword arg: look for argument node with matching key=value
+                    if (!hasKeywordArg(tree, call_id, kw_name, c.value)) return false;
+                } else {
+                    // Positional identifier value
+                    const target = c.value orelse continue;
+                    var found = false;
+                    for (arg_nodes[0..arg_count]) |nid| {
+                        if (nodeHasIdentifierValue(tree, nid, target)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) return false;
+                }
+            },
+        }
+    }
+    return true;
+}
+
+fn nodeIsStringLiteral(tree: *const zir.ZirTree, nid: zir.NodeId) bool {
+    const node = tree.nodes.items[nid];
+    if (node.kind == .literal) {
+        if (node.literalKind()) |lk| return lk == .string;
+    }
+    return false;
+}
+
+fn nodeHasLiteralValue(tree: *const zir.ZirTree, nid: zir.NodeId, target: []const u8) bool {
+    const node = tree.nodes.items[nid];
+    if (node.kind == .literal) {
+        if (node.atom) |aid| {
+            const atom_str = tree.atoms.get(aid);
+            // Compare with and without quotes (atoms may include quotes for strings)
+            if (std.mem.eql(u8, atom_str, target)) return true;
+            // Strip surrounding quotes if present
+            if (atom_str.len >= 2 and (atom_str[0] == '"' or atom_str[0] == '\'')) {
+                if (std.mem.eql(u8, atom_str[1 .. atom_str.len - 1], target)) return true;
+            }
+        }
+    }
+    // Check children (literal may be nested, e.g. inside string node)
+    for (tree.nodes.items, 0..) |child, child_idx| {
+        if (child.parent) |pid| {
+            if (pid == nid and child.kind == .literal) {
+                if (child.atom) |aid| {
+                    const atom_str = tree.atoms.get(aid);
+                    if (std.mem.eql(u8, atom_str, target)) return true;
+                    if (atom_str.len >= 2 and (atom_str[0] == '"' or atom_str[0] == '\'')) {
+                        if (std.mem.eql(u8, atom_str[1 .. atom_str.len - 1], target)) return true;
+                    }
+                }
+                _ = child_idx;
+            }
+        }
+    }
+    return false;
+}
+
+fn nodeIsKindRecursive(tree: *const zir.ZirTree, nid: zir.NodeId, kind: zir.Kind) bool {
+    if (tree.nodes.items[nid].kind == kind) return true;
+    // Check children
+    for (tree.nodes.items) |child| {
+        if (child.parent) |pid| {
+            if (pid == nid and child.kind == kind) return true;
+        }
+    }
+    return false;
+}
+
+fn nodeHasIdentifierValue(tree: *const zir.ZirTree, nid: zir.NodeId, target: []const u8) bool {
+    const node = tree.nodes.items[nid];
+    if (node.kind == .identifier) {
+        if (node.atom) |aid| {
+            if (std.mem.eql(u8, tree.atoms.get(aid), target)) return true;
+        }
+    }
+    if (node.kind == .literal) {
+        if (node.atom) |aid| {
+            if (std.mem.eql(u8, tree.atoms.get(aid), target)) return true;
+        }
+    }
+    return false;
+}
+
+fn hasKeywordArg(tree: *const zir.ZirTree, call_id: zir.NodeId, keyword_name: []const u8, expected_value: ?[]const u8) bool {
+    // Python keyword_argument nodes become .argument in ZIR
+    // Structure: call → argument_list(.argument) → keyword_argument(.argument) → [identifier(key), value]
+    // We need to find an .argument node under the call that has:
+    //   1. An identifier child matching keyword_name
+    //   2. A sibling child matching expected_value (literal or identifier)
+    for (tree.nodes.items, 0..) |node, idx| {
+        if (node.parent == null) continue;
+        // Walk all argument-like nodes in the call subtree
+        if (node.kind != .argument) continue;
+
+        // Check if this argument (or its ancestor) is under the call
+        if (!isDescendantOf(tree, @intCast(idx), call_id, 4)) continue;
+
+        var found_key = false;
+        var found_value = false;
+
+        for (tree.nodes.items) |child| {
+            if (child.parent) |cpid| {
+                if (cpid == @as(zir.NodeId, @intCast(idx))) {
+                    if (child.kind == .identifier) {
+                        if (child.atom) |aid| {
+                            if (std.mem.eql(u8, tree.atoms.get(aid), keyword_name)) found_key = true;
+                        }
+                    }
+                    if (expected_value) |ev| {
+                        if (child.kind == .identifier or child.kind == .literal) {
+                            if (child.atom) |aid| {
+                                if (std.mem.eql(u8, tree.atoms.get(aid), ev)) found_value = true;
+                            }
+                        }
+                    } else {
+                        found_value = true; // no value constraint
+                    }
+                }
+            }
+        }
+        if (found_key and found_value) return true;
+    }
+    return false;
+}
+
+fn isDescendantOf(tree: *const zir.ZirTree, node_id: zir.NodeId, ancestor_id: zir.NodeId, max_depth: u32) bool {
+    var current = node_id;
+    var depth: u32 = 0;
+    while (depth < max_depth) : (depth += 1) {
+        if (tree.nodes.items[current].parent) |pid| {
+            if (pid == ancestor_id) return true;
+            current = pid;
+        } else return false;
     }
     return false;
 }

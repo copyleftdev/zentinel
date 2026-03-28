@@ -119,7 +119,23 @@ pub const RuleIndex = struct {
                     try call_hashes_list.append(h);
                     try call_entries_list.append(entry);
                 },
+                .call_with_args => |p| {
+                    // Index by callee hash, same as Tier 0 calls
+                    const h = atomHash(p.callee);
+                    const gop = try call_map.getOrPut(h);
+                    if (!gop.found_existing) gop.value_ptr.* = std.ArrayList(IndexEntry).init(allocator);
+                    try gop.value_ptr.append(entry);
+                    try call_hashes_list.append(h);
+                    try call_entries_list.append(entry);
+                },
                 .member_call => |p| {
+                    const h = atomHash(p.method);
+                    const gop = try member_call_map.getOrPut(h);
+                    if (!gop.found_existing) gop.value_ptr.* = std.ArrayList(IndexEntry).init(allocator);
+                    try gop.value_ptr.append(entry);
+                },
+                .member_call_with_args => |p| {
+                    // Index by method hash, same as Tier 0 member calls
                     const h = atomHash(p.method);
                     const gop = try member_call_map.getOrPut(h);
                     if (!gop.found_existing) gop.value_ptr.* = std.ArrayList(IndexEntry).init(allocator);
@@ -212,7 +228,7 @@ pub fn matchWithIndex(
             .call => {
                 const info = findCalleeInfoIndexed(tree, ci, nid);
 
-                // Direct call patterns
+                // Direct call patterns (Tier 0 + Tier 1)
                 if (info.direct_atom) |atom_str| {
                     const h = atomHash(atom_str);
                     if (index.call_hashes.len > 0) {
@@ -222,15 +238,34 @@ pub fn matchWithIndex(
                             if (match_idx) |mi| {
                                 const abs_idx = search_pos + mi;
                                 const entry = index.call_entries[abs_idx];
-                                if (std.mem.eql(u8, atom_str, entry.cr.pattern.call.callee)) {
+
+                                // Get callee name depending on pattern type
+                                const callee_name = switch (entry.cr.pattern) {
+                                    .call => |p| p.callee,
+                                    .call_with_args => |p| p.callee,
+                                    else => {
+                                        search_pos = abs_idx + 1;
+                                        continue;
+                                    },
+                                };
+
+                                if (std.mem.eql(u8, atom_str, callee_name)) {
                                     if (languageMatches(entry.cr, lang)) {
-                                        try findings.append(.{
-                                            .rule_id = entry.cr.rule.id,
-                                            .message = entry.cr.rule.message,
-                                            .severity = entry.cr.rule.severity,
-                                            .node_id = nid,
-                                            .span = node.span,
-                                        });
+                                        // Tier 1: check arg constraints
+                                        const args_ok = switch (entry.cr.pattern) {
+                                            .call => true, // Tier 0: no constraints
+                                            .call_with_args => |p| checkArgConstraintsIndexed(tree, ci, nid, p.constraints),
+                                            else => false,
+                                        };
+                                        if (args_ok) {
+                                            try findings.append(.{
+                                                .rule_id = entry.cr.rule.id,
+                                                .message = entry.cr.rule.message,
+                                                .severity = entry.cr.rule.severity,
+                                                .node_id = nid,
+                                                .span = node.span,
+                                            });
+                                        }
                                     }
                                 }
                                 search_pos = abs_idx + 1;
@@ -239,22 +274,39 @@ pub fn matchWithIndex(
                     }
                 }
 
-                // Member call patterns
+                // Member call patterns (Tier 0 + Tier 1)
                 for (info.member_atoms[0..info.member_count]) |member_atom| {
                     const mh = atomHash(member_atom);
                     if (index.member_call_map.get(mh)) |entries| {
                         for (entries.items) |entry| {
-                            if (languageMatches(entry.cr, lang)) {
-                                const mc = entry.cr.pattern.member_call;
-                                if (memberCallMatchIndexed(tree, ci, nid, mc.object, mc.method)) {
-                                    try findings.append(.{
-                                        .rule_id = entry.cr.rule.id,
-                                        .message = entry.cr.rule.message,
-                                        .severity = entry.cr.rule.severity,
-                                        .node_id = nid,
-                                        .span = node.span,
-                                    });
-                                }
+                            if (!languageMatches(entry.cr, lang)) continue;
+
+                            switch (entry.cr.pattern) {
+                                .member_call => |mc| {
+                                    if (memberCallMatchIndexed(tree, ci, nid, mc.object, mc.method)) {
+                                        try findings.append(.{
+                                            .rule_id = entry.cr.rule.id,
+                                            .message = entry.cr.rule.message,
+                                            .severity = entry.cr.rule.severity,
+                                            .node_id = nid,
+                                            .span = node.span,
+                                        });
+                                    }
+                                },
+                                .member_call_with_args => |mc| {
+                                    if (memberCallMatchIndexed(tree, ci, nid, mc.object, mc.method)) {
+                                        if (checkArgConstraintsIndexed(tree, ci, nid, mc.constraints)) {
+                                            try findings.append(.{
+                                                .rule_id = entry.cr.rule.id,
+                                                .message = entry.cr.rule.message,
+                                                .severity = entry.cr.rule.severity,
+                                                .node_id = nid,
+                                                .span = node.span,
+                                            });
+                                        }
+                                    }
+                                },
+                                else => {},
                             }
                         }
                     }
@@ -271,6 +323,11 @@ pub fn matchWithIndex(
                             if ((!pattern.lhs_is_metavar or has_id) and
                                 (!pattern.rhs_is_string_literal or has_lit))
                             {
+                                // Tier 1: check literal sub-type if required
+                                if (pattern.rhs_literal_kind) |required_lk| {
+                                    if (!hasDescendantLiteralKindIndexed(tree, ci, nid, required_lk, 3)) continue;
+                                }
+
                                 if (node.parent) |pid| {
                                     if (tree.nodes.items[pid].kind == .assignment) continue;
                                 }
@@ -367,4 +424,193 @@ fn hasDescendantInner(tree: *const zir.ZirTree, ci: *const ChildIndex, parent_id
         if (hasDescendantInner(tree, ci, child_id, kind, max_depth, depth + 1)) return true;
     }
     return false;
+}
+
+/// Tier 1: Check if a node has a descendant literal of a specific LiteralKind, using ChildIndex.
+fn hasDescendantLiteralKindIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, parent_id: zir.NodeId, lk: zir.LiteralKind, max_depth: u32) bool {
+    return hasDescendantLiteralKindInner(tree, ci, parent_id, lk, max_depth, 0);
+}
+
+fn hasDescendantLiteralKindInner(tree: *const zir.ZirTree, ci: *const ChildIndex, parent_id: zir.NodeId, lk: zir.LiteralKind, max_depth: u32, depth: u32) bool {
+    if (depth >= max_depth) return false;
+    for (ci.children(parent_id)) |child_id| {
+        const child = tree.nodes.items[child_id];
+        if (child.kind == .literal) {
+            if (child.literalKind()) |k| {
+                if (k == lk) return true;
+            }
+        }
+    }
+    for (ci.children(parent_id)) |child_id| {
+        if (hasDescendantLiteralKindInner(tree, ci, child_id, lk, max_depth, depth + 1)) return true;
+    }
+    return false;
+}
+
+// ── Tier 1: Argument Constraint Checking (Indexed) ─���
+
+fn checkArgConstraintsIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, call_id: zir.NodeId, constraints: []const rule.ArgConstraint) bool {
+    // Collect argument child nodes via ChildIndex
+    var arg_nodes: [16]zir.NodeId = undefined;
+    var arg_count: usize = 0;
+
+    // Find argument list node (.argument kind child of call)
+    for (ci.children(call_id)) |child_id| {
+        if (tree.nodes.items[child_id].kind == .argument) {
+            // Children of the argument list are individual args
+            for (ci.children(child_id)) |arg_child_id| {
+                if (arg_count < 16) {
+                    arg_nodes[arg_count] = arg_child_id;
+                    arg_count += 1;
+                }
+            }
+            break;
+        }
+    }
+
+    for (constraints) |c| {
+        switch (c.kind) {
+            .ellipsis => continue,
+            .any_string => {
+                var found = false;
+                for (arg_nodes[0..arg_count]) |nid| {
+                    if (nodeIsStringLiteralIndexed(tree, nid)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) return false;
+            },
+            .exact_string => {
+                const target = c.value orelse continue;
+                var found = false;
+                for (arg_nodes[0..arg_count]) |nid| {
+                    if (nodeHasLiteralValueIndexed(tree, ci, nid, target)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) return false;
+            },
+            .string_template => {
+                var found = false;
+                for (arg_nodes[0..arg_count]) |nid| {
+                    if (nodeIsKindRecursiveIndexed(tree, ci, nid, .string_template)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) return false;
+            },
+            .identifier_value => {
+                if (c.keyword_name) |kw_name| {
+                    if (!hasKeywordArgIndexed(tree, ci, call_id, kw_name, c.value)) return false;
+                } else {
+                    const target = c.value orelse continue;
+                    var found = false;
+                    for (arg_nodes[0..arg_count]) |nid| {
+                        if (nodeHasIdentifierValueIndexed(tree, nid, target)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) return false;
+                }
+            },
+        }
+    }
+    return true;
+}
+
+fn nodeIsStringLiteralIndexed(tree: *const zir.ZirTree, nid: zir.NodeId) bool {
+    const node = tree.nodes.items[nid];
+    if (node.kind == .literal) {
+        if (node.literalKind()) |lk| return lk == .string;
+    }
+    return false;
+}
+
+fn nodeHasLiteralValueIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, nid: zir.NodeId, target: []const u8) bool {
+    const node = tree.nodes.items[nid];
+    if (node.kind == .literal) {
+        if (node.atom) |aid| {
+            const atom_str = tree.atoms.get(aid);
+            if (std.mem.eql(u8, atom_str, target)) return true;
+            if (atom_str.len >= 2 and (atom_str[0] == '"' or atom_str[0] == '\'')) {
+                if (std.mem.eql(u8, atom_str[1 .. atom_str.len - 1], target)) return true;
+            }
+        }
+    }
+    // Check literal children (e.g., string node containing string_fragment)
+    for (ci.children(nid)) |child_id| {
+        const child = tree.nodes.items[child_id];
+        if (child.kind == .literal) {
+            if (child.atom) |aid| {
+                const atom_str = tree.atoms.get(aid);
+                if (std.mem.eql(u8, atom_str, target)) return true;
+                if (atom_str.len >= 2 and (atom_str[0] == '"' or atom_str[0] == '\'')) {
+                    if (std.mem.eql(u8, atom_str[1 .. atom_str.len - 1], target)) return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+fn nodeIsKindRecursiveIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, nid: zir.NodeId, kind: zir.Kind) bool {
+    if (tree.nodes.items[nid].kind == kind) return true;
+    for (ci.children(nid)) |child_id| {
+        if (tree.nodes.items[child_id].kind == kind) return true;
+    }
+    return false;
+}
+
+fn nodeHasIdentifierValueIndexed(tree: *const zir.ZirTree, nid: zir.NodeId, target: []const u8) bool {
+    const node = tree.nodes.items[nid];
+    if (node.kind == .identifier or node.kind == .literal) {
+        if (node.atom) |aid| {
+            if (std.mem.eql(u8, tree.atoms.get(aid), target)) return true;
+        }
+    }
+    return false;
+}
+
+fn hasKeywordArgIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, call_id: zir.NodeId, keyword_name: []const u8, expected_value: ?[]const u8) bool {
+    // Walk argument nodes under the call, looking for keyword argument structure
+    for (ci.children(call_id)) |child_id| {
+        if (tree.nodes.items[child_id].kind == .argument) {
+            // This is the argument list — check its children (individual args)
+            for (ci.children(child_id)) |arg_id| {
+                if (tree.nodes.items[arg_id].kind == .argument) {
+                    // This could be a keyword_argument (mapped to .argument)
+                    if (checkKeywordPairIndexed(tree, ci, arg_id, keyword_name, expected_value)) return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+fn checkKeywordPairIndexed(tree: *const zir.ZirTree, ci: *const ChildIndex, arg_id: zir.NodeId, keyword_name: []const u8, expected_value: ?[]const u8) bool {
+    var found_key = false;
+    var found_value = false;
+
+    for (ci.children(arg_id)) |child_id| {
+        const child = tree.nodes.items[child_id];
+        if (child.kind == .identifier) {
+            if (child.atom) |aid| {
+                if (std.mem.eql(u8, tree.atoms.get(aid), keyword_name)) found_key = true;
+            }
+        }
+        if (expected_value) |ev| {
+            if (child.kind == .identifier or child.kind == .literal) {
+                if (child.atom) |aid| {
+                    if (std.mem.eql(u8, tree.atoms.get(aid), ev)) found_value = true;
+                }
+            }
+        } else {
+            found_value = true;
+        }
+    }
+    return found_key and found_value;
 }
