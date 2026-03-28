@@ -180,6 +180,9 @@ fn handleScan(req: *std.http.Server.Request, rules_dir: []const u8, allocator: s
     defer {
         for (all_findings.items) |f| {
             allocator.free(f.file);
+            allocator.free(f.message);
+            allocator.free(f.severity);
+            allocator.free(f.rule_id);
         }
         all_findings.deinit();
     }
@@ -245,9 +248,9 @@ fn handleScan(req: *std.http.Server.Request, rules_dir: []const u8, allocator: s
                             .file = try allocator.dupe(u8, rel_path),
                             .line = f.span.start_row + 1,
                             .col = f.span.start_col + 1,
-                            .message = f.message,
-                            .severity = @tagName(f.severity),
-                            .rule_id = f.rule_id,
+                            .message = try allocator.dupe(u8, f.message),
+                            .severity = try allocator.dupe(u8, @tagName(f.severity)),
+                            .rule_id = try allocator.dupe(u8, f.rule_id),
                         });
                     }
                 }
