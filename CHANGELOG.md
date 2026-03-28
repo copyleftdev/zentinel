@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.3.0 — 2026-03-27
+
+Community rule corpus and Tier 3 cross-file analysis.
+
+### Community Rules (354 rules)
+- Translated from Semgrep's public rule repository (github.com/semgrep/semgrep-rules)
+- Python: 271 rules, Go: 50, TypeScript: 33, JavaScript: 31
+- Covers: AI/LLM API key leaks, SQL injection, XSS, SSRF, path traversal, crypto misuse, and more
+- Translation script at `scripts/translate_semgrep_rules.py` for re-running on updates
+- Total corpus: 68 hand-written + 354 community = 422 rules
+
+### Tier 3: Cross-File Taint Analysis
+- Two-pass scan: collect exports/imports, then analyze cross-file flows
+- Tracks tainted data across `from X import Y` boundaries
+- One-hop: caller imports function, calls with tainted arg, callee reaches sink
+- H16: 5/5 CONFIRMED
+
+### Custom Source/Sink Configuration
+- Rules specify `sources:` to define where tainted data enters
+- 4 Python taint rules with configurable sources (request, input, sys.argv)
+- H17: 6/6 CONFIRMED
+
+---
+
 ## v0.2.1 — 2026-03-27
 
 Custom taint sources, fuzz hardening, and polish.

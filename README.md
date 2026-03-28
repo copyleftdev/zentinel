@@ -87,7 +87,7 @@ Exit code 0 = clean. Exit code 1 = findings.
 
 ### Rules
 
-Zentinel ships with 68 security rules across six sets:
+Zentinel ships with 422 security rules — 68 hand-written + 354 translated from Semgrep's community corpus:
 
 | Rule Set | Rules | Languages |
 |----------|-------|-----------|
@@ -96,6 +96,10 @@ Zentinel ships with 68 security rules across six sets:
 | `rules/typescript-security.yaml` | 14 | TypeScript |
 | `rules/go-security.yaml` | 4 | Go |
 | `rules/universal-security.yaml` | 3 | All |
+| `rules/community/python-community.yaml` | 271 | Python |
+| `rules/community/go-community.yaml` | 50 | Go |
+| `rules/community/typescript-community.yaml` | 33 | TypeScript |
+| `rules/community/javascript-community.yaml` | 31 | JavaScript |
 
 Covers: command injection, code injection (`eval`/`exec`), unsafe deserialization (`pickle`, `yaml.load`), weak cryptography (MD5, SHA-1), hardcoded secrets, XSS (`document.write`), insecure network (plain HTTP), temp file races, SQL injection via tainted data flow.
 
@@ -172,7 +176,7 @@ Source → tree-sitter → CST → Normalizer → ZIR → Prefilter → Matcher 
 
 ## Status
 
-Four languages. Four analysis tiers. 68 security rules. 17 hypotheses confirmed.
+Four languages. Four analysis tiers. 422 security rules. 17 hypotheses confirmed.
 
 - **Tier 0** — Structural matching (node kinds + identifiers)
 - **Tier 1** — Local reasoning (literal classification, argument constraints, f-string detection)
