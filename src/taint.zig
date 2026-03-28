@@ -102,6 +102,41 @@ pub fn extractSinks(compiled_rules: []const rule.CompiledRule, lang: []const u8,
     return sinks.toOwnedSlice();
 }
 
+/// Extract SinkSpecs from rules at a specific tier or higher.
+pub fn extractSinksAtTier(compiled_rules: []const rule.CompiledRule, min_tier: u8, allocator: std.mem.Allocator) ![]SinkSpec {
+    var sinks = std.ArrayList(SinkSpec).init(allocator);
+
+    for (compiled_rules) |cr| {
+        if (cr.rule.tier < min_tier) continue;
+
+        switch (cr.pattern) {
+            .call => |p| {
+                try sinks.append(.{
+                    .rule_id = cr.rule.id,
+                    .message = cr.rule.message,
+                    .severity = cr.rule.severity,
+                    .callee = p.callee,
+                    .object = null,
+                    .method = null,
+                });
+            },
+            .member_call => |p| {
+                try sinks.append(.{
+                    .rule_id = cr.rule.id,
+                    .message = cr.rule.message,
+                    .severity = cr.rule.severity,
+                    .callee = null,
+                    .object = p.object,
+                    .method = p.method,
+                });
+            },
+            else => {},
+        }
+    }
+
+    return sinks.toOwnedSlice();
+}
+
 // ── Per-Function Analysis ──
 
 fn analyzeFunction(
@@ -142,6 +177,74 @@ fn analyzeFunction(
             else => {},
         }
     }
+}
+
+/// Analyze a specific function with only certain parameters seeded as tainted.
+/// Used by cross-file analysis (Tier 3) to seed taint from call arguments.
+pub fn analyzeFunctionWithSeededParams(
+    tree: *const zir.ZirTree,
+    ci: *const fast_matcher.ChildIndex,
+    func_id: zir.NodeId,
+    tainted_param_indices: []const u32,
+    sinks: []const SinkSpec,
+    allocator: std.mem.Allocator,
+) ![]matcher.Finding {
+    var findings = std.ArrayList(matcher.Finding).init(allocator);
+
+    var taint_map = std.AutoHashMap(zir.AtomId, TaintState).init(allocator);
+    defer taint_map.deinit();
+
+    // Seed only specified parameters
+    var param_idx: u32 = 0;
+    for (ci.children(func_id)) |child_id| {
+        if (tree.nodes.items[child_id].kind == .parameter) {
+            for (tainted_param_indices) |ti| {
+                if (ti == param_idx) {
+                    try seedParameterTaint(tree, ci, child_id, &taint_map);
+                    break;
+                }
+            }
+            param_idx += 1;
+        }
+    }
+
+    // Forward pass (same as analyzeFunction)
+    const func_end = findSubtreeEnd(tree, ci, func_id);
+    var nid: zir.NodeId = func_id + 1;
+    while (nid < func_end) : (nid += 1) {
+        if (!isDescendantOfCached(tree, nid, func_id, func_end)) {
+            continue;
+        }
+        switch (tree.nodes.items[nid].kind) {
+            .assignment => try processAssignment(tree, ci, nid, &taint_map),
+            .call => try checkSink(tree, ci, nid, &taint_map, sinks, &findings),
+            else => {},
+        }
+    }
+
+    return findings.toOwnedSlice();
+}
+
+/// Get parameter names for a function node (in order).
+pub fn getFunctionParamNames(
+    tree: *const zir.ZirTree,
+    ci: *const fast_matcher.ChildIndex,
+    func_id: zir.NodeId,
+    allocator: std.mem.Allocator,
+) ![]const []const u8 {
+    var names = std.ArrayList([]const u8).init(allocator);
+    for (ci.children(func_id)) |child_id| {
+        if (tree.nodes.items[child_id].kind == .parameter) {
+            for (ci.children(child_id)) |pc_id| {
+                if (tree.nodes.items[pc_id].kind == .identifier) {
+                    if (tree.nodes.items[pc_id].atom) |aid| {
+                        try names.append(tree.atoms.get(aid));
+                    }
+                }
+            }
+        }
+    }
+    return names.toOwnedSlice();
 }
 
 /// Seed taint from a parameter node's identifier children.

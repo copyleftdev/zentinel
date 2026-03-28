@@ -12,6 +12,7 @@ const matcher = @import("matcher");
 const fast_matcher = @import("fast_matcher");
 const sarif = @import("sarif");
 const taint = @import("taint");
+const crossfile = @import("crossfile");
 const cache = @import("cache");
 
 const stderr = std.io.getStdErr().writer();
@@ -259,6 +260,70 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
         try all_file_results.append(.{ .path = file_path, .findings = findings });
         total_findings += findings.len;
         files_scanned += 1;
+    }
+
+    // Tier 3: Cross-file analysis (if any tier>=3 rules exist)
+    const tier3_sinks = try taint.extractSinksAtTier(compiled, 3, allocator);
+    defer allocator.free(tier3_sinks);
+
+    if (tier3_sinks.len > 0 and files.items.len > 1) {
+        // Build cross-file index: re-parse all files, extract exports/imports
+        var cross_index = crossfile.CrossFileIndex.init(allocator);
+        defer cross_index.deinit();
+
+        for (files.items) |file_path| {
+            const lang2 = detectLanguage(file_path) orelse continue;
+            const source2 = std.fs.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch continue;
+            defer allocator.free(source2);
+
+            try parser.setLanguage(lang2.ts_lang);
+            var tree2 = try parser.parse(source2);
+            defer tree2.deinit();
+
+            var ztree2 = zir.ZirTree.init(allocator, lang2.name);
+            // Don't defer deinit — ownership transfers to cross_index
+            try normalizer.buildZir(&ztree2, &tree2.rootNode(), null, lang2.ts_lang);
+
+            var ci2 = try fast_matcher.ChildIndex.build(&ztree2, allocator);
+            const exports = try crossfile.extractExports(&ztree2, &ci2, allocator);
+            const imports = try crossfile.extractImports(&ztree2, &ci2, allocator);
+
+            try cross_index.files.put(file_path, .{
+                .tree = ztree2,
+                .ci = ci2,
+                .lang = lang2.name,
+                .exports = exports,
+                .imports = imports,
+            });
+        }
+
+        // Run cross-file analysis for each file
+        for (files.items) |file_path| {
+            const cf_findings = try crossfile.analyzeCrossFile(
+                &cross_index,
+                file_path,
+                tier3_sinks,
+                files.items,
+                allocator,
+            );
+
+            if (cf_findings.len > 0) {
+                if (format == .text) {
+                    for (cf_findings) |f| {
+                        try stdout.print("{s}:{d}:{d}: {s} [{s}] ({s}) [cross-file]\n", .{
+                            file_path,
+                            f.span.start_row + 1,
+                            f.span.start_col + 1,
+                            f.message,
+                            @tagName(f.severity),
+                            f.rule_id,
+                        });
+                    }
+                }
+                total_findings += cf_findings.len;
+            }
+            allocator.free(cf_findings);
+        }
     }
 
     // SARIF output (written after all files are scanned)

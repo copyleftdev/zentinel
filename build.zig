@@ -81,6 +81,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "h13_argument_constraints", .path = "hypothesis/h13_argument_constraints.zig" },
         .{ .name = "h14_tier_enforcement", .path = "hypothesis/h14_tier_enforcement.zig" },
         .{ .name = "h15_taint_tracking", .path = "hypothesis/h15_taint_tracking.zig" },
+        .{ .name = "h16_crossfile_taint", .path = "hypothesis/h16_crossfile_taint.zig" },
     };
 
     // Shared module for ZIR types used across hypotheses
@@ -130,6 +131,15 @@ pub fn build(b: *std.Build) void {
     taint_mod.addImport("matcher", matcher_mod);
     taint_mod.addImport("fast_matcher", fast_matcher_mod);
 
+    const crossfile_mod = b.addModule("crossfile", .{
+        .root_source_file = .{ .cwd_relative = "src/crossfile.zig" },
+    });
+    crossfile_mod.addImport("zir", zir_mod);
+    crossfile_mod.addImport("rule", rule_mod);
+    crossfile_mod.addImport("matcher", matcher_mod);
+    crossfile_mod.addImport("fast_matcher", fast_matcher_mod);
+    crossfile_mod.addImport("taint", taint_mod);
+
     const cache_mod = b.addModule("cache", .{
         .root_source_file = .{ .cwd_relative = "src/cache.zig" },
     });
@@ -162,6 +172,7 @@ pub fn build(b: *std.Build) void {
     zent.root_module.addImport("sarif", sarif_mod);
     zent.root_module.addImport("fast_matcher", fast_matcher_mod);
     zent.root_module.addImport("taint", taint_mod);
+    zent.root_module.addImport("crossfile", crossfile_mod);
     zent.root_module.addImport("cache", cache_mod);
     b.installArtifact(zent);
 
@@ -197,6 +208,7 @@ pub fn build(b: *std.Build) void {
     fuzz_exe.root_module.addImport("matcher", matcher_mod);
     fuzz_exe.root_module.addImport("fast_matcher", fast_matcher_mod);
     fuzz_exe.root_module.addImport("taint", taint_mod);
+    fuzz_exe.root_module.addImport("crossfile", crossfile_mod);
     fuzz_exe.root_module.addImport("cache", cache_mod);
     b.installArtifact(fuzz_exe);
 
@@ -241,6 +253,7 @@ pub fn build(b: *std.Build) void {
         exe.root_module.addImport("sarif", sarif_mod);
         exe.root_module.addImport("fast_matcher", fast_matcher_mod);
         exe.root_module.addImport("taint", taint_mod);
+        exe.root_module.addImport("crossfile", crossfile_mod);
         exe.root_module.addImport("cache", cache_mod);
 
         b.installArtifact(exe);
