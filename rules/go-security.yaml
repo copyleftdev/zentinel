@@ -1,0 +1,27 @@
+rules:
+  # ── Command Injection ──────────────────────────────────
+  - id: go.security.exec-command
+    pattern: exec.Command(...)
+    message: exec.Command() can lead to command injection — validate and sanitize input
+    languages: [go]
+    severity: ERROR
+
+  # ── Cryptography ───────────────────────────────────────
+  - id: go.security.crypto-md5
+    pattern: md5.Sum(...)
+    message: MD5 is cryptographically broken — use SHA-256 or stronger
+    languages: [go]
+    severity: WARNING
+
+  - id: go.security.crypto-sha1
+    pattern: sha1.Sum(...)
+    message: SHA-1 is cryptographically weak — use SHA-256 or stronger
+    languages: [go]
+    severity: WARNING
+
+  # ── Hardcoded Secrets ──────────────────────────────────
+  - id: go.security.hardcoded-secret
+    pattern: $KEY = "..."
+    message: Possible hardcoded secret — use environment variables or a vault
+    languages: [go]
+    severity: WARNING

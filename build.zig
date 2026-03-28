@@ -35,6 +35,20 @@ pub fn build(b: *std.Build) void {
     ts_javascript.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-javascript/src" });
     ts_javascript.linkLibC();
 
+    const ts_go = b.addStaticLibrary(.{
+        .name = "tree-sitter-go",
+        .target = target,
+        .optimize = optimize,
+    });
+    ts_go.addCSourceFiles(.{
+        .files = &.{
+            "vendor/tree-sitter-go/src/parser.c",
+        },
+        .flags = &.{"-std=c11"},
+    });
+    ts_go.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-go/src" });
+    ts_go.linkLibC();
+
     // --- Hypothesis test executables ---
     const hypotheses = [_]struct { name: []const u8, path: []const u8 }{
         .{ .name = "h1_treesitter_ffi", .path = "hypothesis/h1_treesitter_ffi.zig" },
@@ -109,9 +123,11 @@ pub fn build(b: *std.Build) void {
     zent.linkSystemLibrary("tree-sitter");
     zent.linkLibrary(ts_python);
     zent.linkLibrary(ts_javascript);
+    zent.linkLibrary(ts_go);
     zent.linkLibC();
     zent.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-python/src" });
     zent.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-javascript/src" });
+    zent.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-go/src" });
     zent.root_module.addImport("zir", zir_mod);
     zent.root_module.addImport("treesitter", ts_mod);
     zent.root_module.addImport("normalizer", normalizer_mod);
@@ -140,9 +156,11 @@ pub fn build(b: *std.Build) void {
     fuzz_exe.linkSystemLibrary("tree-sitter");
     fuzz_exe.linkLibrary(ts_python);
     fuzz_exe.linkLibrary(ts_javascript);
+    fuzz_exe.linkLibrary(ts_go);
     fuzz_exe.linkLibC();
     fuzz_exe.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-python/src" });
     fuzz_exe.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-javascript/src" });
+    fuzz_exe.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-go/src" });
     fuzz_exe.root_module.addImport("zir", zir_mod);
     fuzz_exe.root_module.addImport("treesitter", ts_mod);
     fuzz_exe.root_module.addImport("normalizer", normalizer_mod);
@@ -174,11 +192,13 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("tree-sitter");
         exe.linkLibrary(ts_python);
         exe.linkLibrary(ts_javascript);
+        exe.linkLibrary(ts_go);
         exe.linkLibC();
 
         // Add include paths for tree-sitter headers
         exe.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-python/src" });
         exe.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-javascript/src" });
+        exe.addIncludePath(.{ .cwd_relative = "vendor/tree-sitter-go/src" });
 
         // Add shared modules
         exe.root_module.addImport("zir", zir_mod);

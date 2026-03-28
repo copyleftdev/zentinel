@@ -10,6 +10,7 @@ pub fn mapKind(node_type: []const u8, lang: ts.Language) zir.Kind {
     return switch (lang) {
         .python => mapKindPython(node_type),
         .javascript => mapKindJavaScript(node_type),
+        .go => mapKindGo(node_type),
     };
 }
 
@@ -131,6 +132,55 @@ fn mapKindJavaScript(t: []const u8) zir.Kind {
     return .unknown;
 }
 
+fn mapKindGo(t: []const u8) zir.Kind {
+    // Module
+    if (eq(t, "source_file")) return .module;
+
+    // Declarations
+    if (eq(t, "function_declaration") or eq(t, "method_declaration") or eq(t, "func_literal")) return .function;
+    if (eq(t, "struct_type") or eq(t, "interface_type")) return .class;
+
+    // Expressions
+    if (eq(t, "call_expression") or eq(t, "type_conversion_expression")) return .call;
+    if (eq(t, "identifier") or eq(t, "field_identifier") or eq(t, "type_identifier") or eq(t, "package_identifier")) return .identifier;
+    if (eq(t, "blank_identifier")) return .identifier;
+    if (eq(t, "selector_expression") or eq(t, "index_expression") or eq(t, "slice_expression")) return .member_access;
+
+    // Literals
+    if (eq(t, "interpreted_string_literal") or eq(t, "raw_string_literal")) return .literal;
+    if (eq(t, "int_literal") or eq(t, "float_literal") or eq(t, "imaginary_literal")) return .literal;
+    if (eq(t, "rune_literal")) return .literal;
+    if (eq(t, "true") or eq(t, "false") or eq(t, "nil") or eq(t, "iota")) return .literal;
+    if (eq(t, "composite_literal")) return .literal;
+
+    // Assignment
+    if (eq(t, "assignment_statement") or eq(t, "short_var_declaration")) return .assignment;
+    if (eq(t, "var_declaration") or eq(t, "var_spec") or eq(t, "const_declaration") or eq(t, "const_spec")) return .assignment;
+
+    // Imports
+    if (eq(t, "import_declaration") or eq(t, "import_spec")) return .import;
+
+    // Control flow
+    if (eq(t, "if_statement") or eq(t, "for_statement")) return .control_flow;
+    if (eq(t, "expression_switch_statement") or eq(t, "type_switch_statement") or eq(t, "select_statement")) return .control_flow;
+    if (eq(t, "go_statement") or eq(t, "defer_statement")) return .control_flow;
+
+    // Operators
+    if (eq(t, "binary_expression")) return .binary_op;
+    if (eq(t, "unary_expression")) return .unary_op;
+
+    // Structural
+    if (eq(t, "return_statement")) return .return_stmt;
+    if (eq(t, "block")) return .block;
+    if (eq(t, "parameter_list") or eq(t, "parameter_declaration") or eq(t, "variadic_parameter_declaration")) return .parameter;
+    if (eq(t, "argument_list") or eq(t, "variadic_argument")) return .argument;
+    if (eq(t, "comment")) return .comment;
+    if (eq(t, "expression_statement")) return .expression_stmt;
+    if (eq(t, "parenthesized_expression")) return .expression_stmt;
+
+    return .unknown;
+}
+
 fn eq(a: []const u8, b: []const u8) bool {
     return std.mem.eql(u8, a, b);
 }
@@ -140,6 +190,7 @@ pub fn classifyLiteral(node_type: []const u8, lang: ts.Language) zir.LiteralKind
     return switch (lang) {
         .python => classifyLiteralPython(node_type),
         .javascript => classifyLiteralJavaScript(node_type),
+        .go => classifyLiteralGo(node_type),
     };
 }
 
@@ -150,6 +201,16 @@ fn classifyLiteralPython(t: []const u8) zir.LiteralKind {
     if (eq(t, "true") or eq(t, "false")) return .boolean;
     if (eq(t, "none")) return .null_value;
     if (eq(t, "list") or eq(t, "dictionary") or eq(t, "tuple")) return .collection;
+    return .unknown;
+}
+
+fn classifyLiteralGo(t: []const u8) zir.LiteralKind {
+    if (eq(t, "interpreted_string_literal") or eq(t, "raw_string_literal") or eq(t, "rune_literal")) return .string;
+    if (eq(t, "int_literal")) return .number_int;
+    if (eq(t, "float_literal") or eq(t, "imaginary_literal")) return .number_float;
+    if (eq(t, "true") or eq(t, "false")) return .boolean;
+    if (eq(t, "nil") or eq(t, "iota")) return .null_value;
+    if (eq(t, "composite_literal")) return .collection;
     return .unknown;
 }
 
