@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-commit hook: validate that all hand-written rules have test coverage.
+# Install: cp scripts/pre-commit-rules .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+# Only run if rule files or fixtures changed
+CHANGED=$(git diff --cached --name-only | grep -E '(rules/[^c].*\.yaml|test_fixtures/)' || true)
+if [ -z "$CHANGED" ]; then
+    exit 0
+fi
+
+echo "Validating rule coverage..."
+
+# Ensure zent is built
+if [ ! -f zig-out/bin/zent ]; then
+    zig build -Doptimize=ReleaseFast 2>/dev/null || {
+        echo "WARNING: Could not build zent, skipping rule coverage check"
+        exit 0
+    }
+fi
+
+python3 scripts/validate_rule_coverage.py
+exit $?

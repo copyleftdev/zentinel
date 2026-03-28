@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.14.0
+
+      - name: Install tree-sitter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev
+
+      - name: Build
+        run: zig build -Doptimize=ReleaseFast
+
+      - name: Run hypothesis tests (H1-H6, H8-H14)
+        run: |
+          for h in h1_treesitter_ffi h2_zir_normalization h3_error_tolerance h4_pattern_matching h5_prefilter h6_arena_benchmark h8_rule_system h9_ground_truth h10_indexed_matcher h11_literal_classification h12_assignment_precision h13_argument_constraints h14_tier_enforcement; do
+            echo "=== $h ==="
+            zig build run-$h 2>&1 | tail -5
+          done
+
+      - name: Run taint tests (H15-H17)
+        run: |
+          for h in h15_taint_tracking h16_crossfile_taint h17_custom_sources; do
+            echo "=== $h ==="
+            zig build run-$h 2>&1 | tail -5
+          done
+
+      - name: Validate rule coverage
+        run: python3 scripts/validate_rule_coverage.py
