@@ -82,6 +82,7 @@ def scan_fixtures(rule_file: Path, fixture_files: list[Path]) -> set[str]:
     fired = set()
     for fixture in fixture_files:
         try:
+            clean_zir_cache()  # Prevent cross-language ZIR cache corruption
             result = subprocess.run(
                 [str(ZENT), "scan", str(fixture), "--config", str(rule_file)],
                 capture_output=True, text=True, timeout=30
