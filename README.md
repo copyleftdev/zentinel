@@ -171,7 +171,7 @@ Phase 1 MVP and Tier 1/2 complete. Four languages supported: Python, JavaScript,
 
 64 security rules. 15 hypothesis tests confirmed. Zero false positives on ground truth.
 
-What's next: cross-file analysis (Tier 3), LSP integration.
+What's next: more languages, deeper taint propagation, custom source/sink configuration.
 
 ---
 
