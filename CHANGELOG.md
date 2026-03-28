@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.2.0 — 2026-03-27
+
+Tiered analysis engine and multi-language support.
+
+### Tier 1: Local Reasoning
+- LiteralKind classification (string/int/float/bool/null/regex/collection) packed into ZIR node flags
+- Argument constraints: keyword args (`shell=True`), exact string values (`"md5"`), f-string detection
+- Assignment precision: `$KEY = "..."` only fires on string literal RHS (62.5% FP reduction)
+- `--max-tier` CLI flag for tier enforcement
+- 10 new precision rules (subprocess shell=True, hashlib.new, eval f-string, crypto precise)
+
+### Tier 2: Intra-Procedural Taint
+- Per-function taint tracking: parameter → variable → sink data flow
+- Assignment propagation, f-string interpolation, call result tainting
+- 75μs per function analysis, zero false positives on safe inputs
+
+### Tier 3: Cross-File Taint
+- Two-pass scan: collect exports/imports, then analyze cross-file flows
+- Tracks tainted data across `from X import Y` boundaries
+- One-hop: A→B (caller imports function, calls with tainted arg, callee reaches sink)
+- Zero overhead when no Tier 3 rules present
+
+### Languages
+- Go support (tree-sitter-go v0.23.4, 45 node mappings, 4 security rules)
+- TypeScript support (tree-sitter-typescript v0.23.2, 12 TS-specific + 108 shared mappings, 14 security rules)
+
+### Testing
+- 16 hypothesis tests, all confirmed (H11–H16 new)
+- 3 new benchmarks (B-10 through B-12), all passing
+- Ground truth: 30 Python + 19 JavaScript findings, zero FP/FN
+
+### Rule Corpus
+- 64 total rules: 27 Python + 16 JavaScript + 4 Go + 14 TypeScript + 3 universal
+- Tier 0 (structural) + Tier 1 (precision) rules across all languages
+
+---
+
 ## v0.1.0 — 2026-03-27
 
 Initial release. Phase 1 MVP complete.
