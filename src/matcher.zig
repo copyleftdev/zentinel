@@ -2,6 +2,7 @@
 const std = @import("std");
 const zir = @import("zir");
 const rule = @import("rule");
+const secrets = @import("secrets");
 
 // ── Types ──
 
@@ -269,61 +270,43 @@ fn hasDescendantLiteralKindInner(tree: *const zir.ZirTree, parent_id: zir.NodeId
     return false;
 }
 
-/// Check if the LHS identifier of an assignment looks like a secret variable name.
-/// Matches case-insensitively against common secret-related keywords.
+/// Two-gate secret detection: name must contain keyword AND value must look like a secret.
 fn lhsMatchesSecretHint(tree: *const zir.ZirTree, assign_id: zir.NodeId) bool {
-    const SECRET_KEYWORDS = [_][]const u8{
-        "secret", "key", "password", "passwd", "token", "credential",
-        "auth", "api_key", "apikey", "private", "cert",
-    };
+    var lhs_name: ?[]const u8 = null;
+    var rhs_value: ?[]const u8 = null;
 
-    // Search depth 2: direct children and grandchildren
-    // (JS: lexical_declaration → variable_declarator → identifier)
+    // Search depth 2 for LHS name and RHS value
     for (tree.nodes.items, 0..) |child, child_idx| {
         if (child.parent) |pid| {
             if (pid == assign_id) {
-                if (child.kind == .identifier) {
-                    if (child.atom) |aid| {
-                        const name = tree.atoms.get(aid);
-                        for (SECRET_KEYWORDS) |kw| {
-                            if (containsInsensitive(name, kw)) return true;
-                        }
-                    }
-                    return false;
+                // LHS: first identifier
+                if (child.kind == .identifier and lhs_name == null) {
+                    if (child.atom) |aid| lhs_name = tree.atoms.get(aid);
                 }
-                // Check grandchildren
+                // RHS: literal value
+                if (child.kind == .literal) {
+                    if (child.atom) |aid| rhs_value = tree.atoms.get(aid);
+                }
+                // Grandchildren (JS: lexical_declaration → variable_declarator → ...)
                 for (tree.nodes.items) |gc| {
                     if (gc.parent) |gpid| {
-                        if (gpid == @as(zir.NodeId, @intCast(child_idx)) and gc.kind == .identifier) {
-                            if (gc.atom) |aid| {
-                                const name = tree.atoms.get(aid);
-                                for (SECRET_KEYWORDS) |kw| {
-                                    if (containsInsensitive(name, kw)) return true;
-                                }
+                        if (gpid == @as(zir.NodeId, @intCast(child_idx))) {
+                            if (gc.kind == .identifier and lhs_name == null) {
+                                if (gc.atom) |aid| lhs_name = tree.atoms.get(aid);
                             }
-                            return false;
+                            if (gc.kind == .literal and rhs_value == null) {
+                                if (gc.atom) |aid| rhs_value = tree.atoms.get(aid);
+                            }
                         }
                     }
                 }
             }
         }
     }
-    return false;
-}
 
-fn containsInsensitive(haystack: []const u8, needle: []const u8) bool {
-    if (needle.len > haystack.len) return false;
-    var i: usize = 0;
-    while (i + needle.len <= haystack.len) : (i += 1) {
-        var match = true;
-        for (0..needle.len) |j| {
-            const h = if (haystack[i + j] >= 'A' and haystack[i + j] <= 'Z') haystack[i + j] + 32 else haystack[i + j];
-            const n = if (needle[j] >= 'A' and needle[j] <= 'Z') needle[j] + 32 else needle[j];
-            if (h != n) { match = false; break; }
-        }
-        if (match) return true;
-    }
-    return false;
+    const name = lhs_name orelse return false;
+    const value = rhs_value orelse return false;
+    return secrets.looksLikeSecret(name, value);
 }
 
 // ── Tier 1: Argument-Constrained Matchers ──

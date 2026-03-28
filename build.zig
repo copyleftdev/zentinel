@@ -106,11 +106,16 @@ pub fn build(b: *std.Build) void {
     });
     rule_mod.addImport("zir", zir_mod);
 
+    const secrets_mod = b.addModule("secrets", .{
+        .root_source_file = .{ .cwd_relative = "src/secrets.zig" },
+    });
+
     const matcher_mod = b.addModule("matcher", .{
         .root_source_file = .{ .cwd_relative = "src/matcher.zig" },
     });
     matcher_mod.addImport("zir", zir_mod);
     matcher_mod.addImport("rule", rule_mod);
+    matcher_mod.addImport("secrets", secrets_mod);
 
     const sarif_mod = b.addModule("sarif", .{
         .root_source_file = .{ .cwd_relative = "src/sarif.zig" },
@@ -124,6 +129,7 @@ pub fn build(b: *std.Build) void {
     fast_matcher_mod.addImport("zir", zir_mod);
     fast_matcher_mod.addImport("rule", rule_mod);
     fast_matcher_mod.addImport("matcher", matcher_mod);
+    fast_matcher_mod.addImport("secrets", secrets_mod);
 
     const taint_mod = b.addModule("taint", .{
         .root_source_file = .{ .cwd_relative = "src/taint.zig" },
