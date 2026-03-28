@@ -1,0 +1,353 @@
+rules:
+  - id: community.anthropic-hardcoded-api-key-go
+    pattern: option.WithAPIKey("$KEY")
+    message: "Anthropic API key is hardcoded in source code. Use environment variables or a secrets manager instead."
+    languages: [go]
+    severity: ERROR
+
+  - id: community.openai-hardcoded-api-key-go
+    pattern: openai.NewClient("$KEY")
+    message: "OpenAI API key is hardcoded in source code. Use environment variables or a secrets manager instead."
+    languages: [go]
+    severity: ERROR
+
+  - id: community.detect-gemini
+    pattern: genai.NewClient(...)
+    message: "Possibly found usage of AI: Gemini"
+    languages: [go]
+    severity: INFO
+
+  - id: community.detect-openai
+    pattern: gogpt.NewClient(...)
+    message: "Possibly found usage of AI: OpenAI"
+    languages: [go]
+    severity: INFO
+
+  - id: community.hardcoded-eq-true-or-false-1
+    pattern: if (true) { ... }
+    message: "Detected useless if statement. 'if (True)' and 'if (False)' always result in the same behavior, and therefore is not necessary in the code. Remove the 'if (False)' expression completely or just the 'i"
+    languages: [go]
+    severity: INFO
+
+  - id: community.hardcoded-eq-true-or-false-2
+    pattern: if (false) { ... }
+    message: "Detected useless if statement. 'if (True)' and 'if (False)' always result in the same behavior, and therefore is not necessary in the code. Remove the 'if (False)' expression completely or just the 'i"
+    languages: [go]
+    severity: INFO
+
+  - id: community.useless-if-conditional
+    pattern: if ($X) {
+    ...
+} else if ($X) {
+    ...
+}
+    message: "Detected an if block that checks for the same condition on both branches (`$X`). The second condition check is useless as it is the same as the first, and therefore can be removed from the code,"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.useless-if-body
+    pattern: if ($X) {
+    $S
+} else {
+    $S
+}
+    message: "Detected identical statements in the if body and the else body of an if-statement. This will lead to the same code being executed no matter what the if-expression evaluates to. Instead, remove the if "
+    languages: [go]
+    severity: WARNING
+
+  - id: community.avoid-ssh-insecure-ignore-host-key
+    pattern: ssh.InsecureIgnoreHostKey()
+    message: "Disabled host key verification detected. This allows man-in-the-middle attacks. Use the 'golang.org/x/crypto/ssh/knownhosts' package to do host key verification. See https://skarlso.github.io/2019/02/"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.use-of-rc4
+    pattern: rc4.NewCipher(...)
+    message: "Detected RC4 cipher algorithm which is insecure. The algorithm has many known vulnerabilities. Use AES instead."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.avoid-bind-to-all-interfaces-1
+    pattern: tls.Listen($NETWORK, "=~/^0.0.0.0:.*$/", ...)
+    message: "Detected a network listener listening on 0.0.0.0 or an empty string. This could unexpectedly expose the server publicly as it binds to all available interfaces. Instead, specify another IP address tha"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.avoid-bind-to-all-interfaces-2
+    pattern: net.Listen($NETWORK, "=~/^0.0.0.0:.*$/", ...)
+    message: "Detected a network listener listening on 0.0.0.0 or an empty string. This could unexpectedly expose the server publicly as it binds to all available interfaces. Instead, specify another IP address tha"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.avoid-bind-to-all-interfaces-3
+    pattern: tls.Listen($NETWORK, "=~/^:.*$/", ...)
+    message: "Detected a network listener listening on 0.0.0.0 or an empty string. This could unexpectedly expose the server publicly as it binds to all available interfaces. Instead, specify another IP address tha"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.avoid-bind-to-all-interfaces-4
+    pattern: net.Listen($NETWORK, "=~/^:.*$/", ...)
+    message: "Detected a network listener listening on 0.0.0.0 or an empty string. This could unexpectedly expose the server publicly as it binds to all available interfaces. Instead, specify another IP address tha"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.dynamic-httptrace-clienttrace
+    pattern: httptrace.WithClientTrace($ANY, $TRACE)
+    message: "Detected a potentially dynamic ClientTrace. This occurred because semgrep could not find a static definition for '$TRACE'. Dynamic ClientTraces are dangerous because they deserialize function code to "
+    languages: [go]
+    severity: WARNING
+
+  - id: community.pprof-debug-exposure
+    pattern: http.ListenAndServe(...)
+    message: "The profiling 'pprof' endpoint is automatically exposed on /debug/pprof. This could leak information about the server. Instead, use `import \"net/http/pprof\"`. See https://www.farsightsecurity.com/blog"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-htmlattr-1
+    pattern: template.HTMLAttr($T + $X, ...)
+    message: "Found a formatted template string passed to 'template. HTMLAttr()'. 'template.HTMLAttr()' does not escape contents. Be absolutely sure there is no user-controlled data in this template or validate and"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-htmlattr-2
+    pattern: template.HTMLAttr(fmt.$P("...", ...), ...)
+    message: "Found a formatted template string passed to 'template. HTMLAttr()'. 'template.HTMLAttr()' does not escape contents. Be absolutely sure there is no user-controlled data in this template or validate and"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-htmlattr-3
+    pattern: $T = "..."
+...
+$T = $FXN(..., $T, ...)
+...
+template.HTMLAttr($T, ...)
+    message: "Found a formatted template string passed to 'template. HTMLAttr()'. 'template.HTMLAttr()' does not escape contents. Be absolutely sure there is no user-controlled data in this template or validate and"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-htmlattr-4
+    pattern: $T = fmt.$P("...", ...)
+...
+template.HTMLAttr($T, ...)
+    message: "Found a formatted template string passed to 'template. HTMLAttr()'. 'template.HTMLAttr()' does not escape contents. Be absolutely sure there is no user-controlled data in this template or validate and"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-htmlattr-5
+    pattern: $T = $X + $Y
+...
+template.HTMLAttr($T, ...)
+    message: "Found a formatted template string passed to 'template. HTMLAttr()'. 'template.HTMLAttr()' does not escape contents. Be absolutely sure there is no user-controlled data in this template or validate and"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-htmlattr-6
+    pattern: $T = "..."
+...
+$OTHER, $ERR = fmt.$P(..., $T, ...)
+...
+template.HTMLAttr($OTHER, ...)
+    message: "Found a formatted template string passed to 'template. HTMLAttr()'. 'template.HTMLAttr()' does not escape contents. Be absolutely sure there is no user-controlled data in this template or validate and"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-js-1
+    pattern: template.JS($T + $X, ...)
+    message: "Found a formatted template string passed to 'template.JS()'. 'template.JS()' does not escape contents. Be absolutely sure there is no user-controlled data in this template."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-js-2
+    pattern: template.JS(fmt.$P("...", ...), ...)
+    message: "Found a formatted template string passed to 'template.JS()'. 'template.JS()' does not escape contents. Be absolutely sure there is no user-controlled data in this template."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-js-3
+    pattern: $T = "..."
+...
+$T = $FXN(..., $T, ...)
+...
+template.JS($T, ...)
+    message: "Found a formatted template string passed to 'template.JS()'. 'template.JS()' does not escape contents. Be absolutely sure there is no user-controlled data in this template."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-js-4
+    pattern: $T = fmt.$P("...", ...)
+...
+template.JS($T, ...)
+    message: "Found a formatted template string passed to 'template.JS()'. 'template.JS()' does not escape contents. Be absolutely sure there is no user-controlled data in this template."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-js-5
+    pattern: $T = $X + $Y
+...
+template.JS($T, ...)
+    message: "Found a formatted template string passed to 'template.JS()'. 'template.JS()' does not escape contents. Be absolutely sure there is no user-controlled data in this template."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-js-6
+    pattern: $T = "..."
+...
+$OTHER, $ERR = fmt.$P(..., $T, ...)
+...
+template.JS($OTHER, ...)
+    message: "Found a formatted template string passed to 'template.JS()'. 'template.JS()' does not escape contents. Be absolutely sure there is no user-controlled data in this template."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-url-1
+    pattern: template.URL($T + $X, ...)
+    message: "Found a formatted template string passed to 'template.URL()'. 'template.URL()' does not escape contents, and this could result in XSS (cross-site scripting) and therefore confidential data being stole"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-url-2
+    pattern: template.URL(fmt.$P("...", ...), ...)
+    message: "Found a formatted template string passed to 'template.URL()'. 'template.URL()' does not escape contents, and this could result in XSS (cross-site scripting) and therefore confidential data being stole"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-url-3
+    pattern: $T = "..."
+...
+$T = $FXN(..., $T, ...)
+...
+template.URL($T, ...)
+    message: "Found a formatted template string passed to 'template.URL()'. 'template.URL()' does not escape contents, and this could result in XSS (cross-site scripting) and therefore confidential data being stole"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-url-4
+    pattern: $T = fmt.$P("...", ...)
+...
+template.URL($T, ...)
+    message: "Found a formatted template string passed to 'template.URL()'. 'template.URL()' does not escape contents, and this could result in XSS (cross-site scripting) and therefore confidential data being stole"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-url-5
+    pattern: $T = $X + $Y
+...
+template.URL($T, ...)
+    message: "Found a formatted template string passed to 'template.URL()'. 'template.URL()' does not escape contents, and this could result in XSS (cross-site scripting) and therefore confidential data being stole"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.unescaped-data-in-url-6
+    pattern: $T = "..."
+...
+$OTHER, $ERR = fmt.$P(..., $T, ...)
+...
+template.URL($OTHER, ...)
+    message: "Found a formatted template string passed to 'template.URL()'. 'template.URL()' does not escape contents, and this could result in XSS (cross-site scripting) and therefore confidential data being stole"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.use-tls
+    pattern: http.ListenAndServe($ADDR, $HANDLER)
+    message: "Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.reflect-makefunc
+    pattern: reflect.MakeFunc(...)
+    message: "'reflect.MakeFunc' detected. This will sidestep protections that are normally afforded by Go's type system. Audit this call and be sure that user input cannot be used to affect the code generated by M"
+    languages: [go]
+    severity: ERROR
+
+  - id: community.no-io-writestring-to-responsewriter
+    pattern: io.WriteString($WRITER, $STRING)
+    message: "Detected 'io.WriteString()' writing directly to 'http.ResponseWriter'. This bypasses HTML escaping that prevents cross-site scripting vulnerabilities. Instead, use the 'html/template' package to rende"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.bad-tmp-file-creation-1
+    pattern: ioutil.WriteFile("=~//tmp/.*$/", ...)
+    message: "File creation in shared tmp directory without using `io.CreateTemp`."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.bad-tmp-file-creation-2
+    pattern: os.Create("=~//tmp/.*$/", ...)
+    message: "File creation in shared tmp directory without using `io.CreateTemp`."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.bad-tmp-file-creation-3
+    pattern: os.WriteFile("=~//tmp/.*$/", ...)
+    message: "File creation in shared tmp directory without using `io.CreateTemp`."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.go-ssti
+    pattern: $TEMPLATE = fmt.Sprintf("...", $ARG, ...)
+    message: "A server-side template injection occurs when an attacker is able to use native template syntax to inject a malicious payload into a template, which is then executed server-side. When using \"html/templ"
+    languages: [go]
+    severity: ERROR
+
+  - id: community.bypass-tls-verification
+    pattern: $CONFIG = &tls.Config{...}
+...
+$CONFIG.InsecureSkipVerify = true
+    message: "Checks for disabling of TLS/SSL certificate verification. This should only be used for debugging purposes because it leads to vulnerability to MTM attacks."
+    languages: [go]
+    severity: WARNING
+
+  - id: community.ftp-request-1
+    pattern: ftp.Dial("=~/^[fF][tT][pP]://.*/", ...)
+    message: "Checks for outgoing connections to ftp servers with the ftp package. FTP does not encrypt traffic, possibly leading to PII being sent plaintext over the network. Instead, connect via the SFTP protocol"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.ftp-request-2
+    pattern: ftp.DialTimeout("=~/^[fF][tT][pP]://.*/", ...)
+    message: "Checks for outgoing connections to ftp servers with the ftp package. FTP does not encrypt traffic, possibly leading to PII being sent plaintext over the network. Instead, connect via the SFTP protocol"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.ftp-request-3
+    pattern: ftp.Connect("=~/^[fF][tT][pP]://.*/")
+    message: "Checks for outgoing connections to ftp servers with the ftp package. FTP does not encrypt traffic, possibly leading to PII being sent plaintext over the network. Instead, connect via the SFTP protocol"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.ftp-request-4
+    pattern: $URL = "=~/^[fF][tT][pP]://.*/"
+...
+ftp.Dial($URL, ...)
+    message: "Checks for outgoing connections to ftp servers with the ftp package. FTP does not encrypt traffic, possibly leading to PII being sent plaintext over the network. Instead, connect via the SFTP protocol"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.ftp-request-5
+    pattern: $URL = "=~/^[fF][tT][pP]://.*/"
+...
+ftp.DialTimeout($URL, ...)
+    message: "Checks for outgoing connections to ftp servers with the ftp package. FTP does not encrypt traffic, possibly leading to PII being sent plaintext over the network. Instead, connect via the SFTP protocol"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.ftp-request-6
+    pattern: $URL = "=~/^[fF][tT][pP]://.*/"
+...
+ftp.Connect($URL)
+    message: "Checks for outgoing connections to ftp servers with the ftp package. FTP does not encrypt traffic, possibly leading to PII being sent plaintext over the network. Instead, connect via the SFTP protocol"
+    languages: [go]
+    severity: WARNING
+
+  - id: community.http-customized-request
+    pattern: http.NewRequest(..., "=~/[hH][tT][tT][pP]://.*/", ...)
+    message: "Checks for requests sent via http.NewRequest to http:// URLS. This is dangerous because the server is attempting to connect to a website that does not encrypt traffic with TLS. Instead, send requests "
+    languages: [go]
+    severity: WARNING
+
+  - id: community.telnet-request
+    pattern: telnet.DialToAndCall(...)
+    message: "Checks for attempts to connect to an insecure telnet server using the package telnet. This is bad because it can lead to man in the middle attacks."
+    languages: [go]
+    severity: WARNING
+

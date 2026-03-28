@@ -1,0 +1,218 @@
+rules:
+  - id: community.dom-based-xss-1
+    pattern: document.write(<... document.location.$W ...>)
+    message: "Detected possible DOM-based XSS. This occurs because a portion of the URL is being used to construct an element added directly to the page. For example, a malicious actor could send someone a link lik"
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: community.dom-based-xss-2
+    pattern: document.write(<... location.$W ...>)
+    message: "Detected possible DOM-based XSS. This occurs because a portion of the URL is being used to construct an element added directly to the page. For example, a malicious actor could send someone a link lik"
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: community.eval-detected
+    pattern: eval(...)
+    message: "Detected the use of eval(). eval() can be dangerous if used to evaluate dynamic content. If this content can be input from outside the program, this may be a code injection vulnerability. Ensure evalu"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.express-check-csurf-middleware-usage
+    pattern: $APP = $EXPRESS()
+    message: "A CSRF middleware was not detected in your express application. Ensure you are either using one such as `csurf` or `csrf` (see rule references) and/or you are properly doing CSRF validation in your ro"
+    languages: [javascript, typescript]
+    severity: INFO
+
+  - id: community.grpc-nodejs-insecure-connection-1
+    pattern: require('grpc');
+...
+$GRPC($ADDR,...,$CREDENTIALS.createInsecure(),...);
+    message: "Found an insecure gRPC connection. This creates a connection without encryption to a gRPC client/server. A malicious attacker could tamper with the gRPC message, which could compromise the machine."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: community.grpc-nodejs-insecure-connection-2
+    pattern: require('grpc');
+...
+new $GRPC($ADDR,...,$CREDENTIALS.createInsecure(),...);
+    message: "Found an insecure gRPC connection. This creates a connection without encryption to a gRPC client/server. A malicious attacker could tamper with the gRPC message, which could compromise the machine."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: community.grpc-nodejs-insecure-connection-3
+    pattern: require('grpc');
+...
+$CREDS = <... $CREDENTIALS.createInsecure() ...>;
+...
+$GRPC($ADDR,...,$CREDS,...);
+    message: "Found an insecure gRPC connection. This creates a connection without encryption to a gRPC client/server. A malicious attacker could tamper with the gRPC message, which could compromise the machine."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: community.grpc-nodejs-insecure-connection-4
+    pattern: require('grpc');
+...
+$CREDS = <... $CREDENTIALS.createInsecure() ...>;
+...
+new $GRPC($ADDR,...,$CREDS,...);
+    message: "Found an insecure gRPC connection. This creates a connection without encryption to a gRPC client/server. A malicious attacker could tamper with the gRPC message, which could compromise the machine."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: community.assigned-undefined
+    pattern: undefined = $X;
+    message: "`undefined` is not a reserved keyword in Javascript, so this is \"valid\" Javascript but highly confusing and likely to result in bugs."
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.lazy-load-module
+    pattern: require(...)
+    message: "Lazy loading can complicate code bundling if care is not taken, also `require`s are run synchronously by Node.js. If they are called from within a function, it may block other requests from being hand"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.javascript-alert-1
+    pattern: alert()
+    message: "found alert() call; should this be in production code?"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.javascript-alert-2
+    pattern: alert($X)
+    message: "found alert() call; should this be in production code?"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.javascript-confirm
+    pattern: confirm(...)
+    message: "found confirm() call; should this be in production code?"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.javascript-prompt-1
+    pattern: prompt()
+    message: "found prompt() call; should this be in production code?"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.javascript-prompt-2
+    pattern: prompt($X)
+    message: "found prompt() call; should this be in production code?"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.javascript-prompt-3
+    pattern: prompt($X, $Y)
+    message: "found prompt() call; should this be in production code?"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.useless-assignment
+    pattern: $X = $Y;
+$X = $Z;
+    message: "`$X` is assigned twice; the first assignment is useless"
+    languages: [javascript, typescript]
+    severity: INFO
+
+  - id: community.detect-no-csrf-before-method-override
+    pattern: express.csrf();
+...
+express.methodOverride();
+    message: "Detected use of express.csrf() middleware before express.methodOverride(). This can allow GET requests (which are not checked by csrf) to turn into POST requests later."
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.aead-no-final
+    pattern: $DECIPHER = $CRYPTO.createDecipheriv('$ALGO', ...)
+...
+$DECIPHER.update(...)
+    message: "The 'final' call of a Decipher object checks the authentication tag in a mode for authenticated encryption. Failing to call 'final' will invalidate all integrity guarantees of the released ciphertext."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: community.sax-xxe-1
+    pattern: require('sax');
+...
+$PARSER.ondoctype = ...;
+    message: "Use of 'ondoctype' in 'sax' library detected. By default, 'sax' won't do anything with custom DTD entity definitions. If you're implementing a custom DTD entity definition, be sure not to introduce XM"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.sax-xxe-2
+    pattern: require('sax');
+...
+$PARSER.on('doctype',...);
+    message: "Use of 'ondoctype' in 'sax' library detected. By default, 'sax' won't do anything with custom DTD entity definitions. If you're implementing a custom DTD entity definition, be sure not to introduce XM"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.sequelize-raw-query-1
+    pattern: $QUERY = `...${...}...`
+...
+$DATABASE.sequelize.query($QUERY, ...)
+    message: "Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. Data replacement or data binding should be used. See https://sequelize.org/master/manual"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.sequelize-raw-query-2
+    pattern: $QUERY = $SQL + $VALUE
+...
+$DATABASE.sequelize.query($QUERY, ...)
+    message: "Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. Data replacement or data binding should be used. See https://sequelize.org/master/manual"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.sequelize-raw-query-3
+    pattern: Sequelize.literal(`...${...}...`)
+    message: "Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. Data replacement or data binding should be used. See https://sequelize.org/master/manual"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.sequelize-raw-query-4
+    pattern: $QUERY = `...${...}...`
+...
+Sequelize.literal($QUERY)
+    message: "Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. Data replacement or data binding should be used. See https://sequelize.org/master/manual"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.sequelize-raw-query-5
+    pattern: Sequelize.literal($SQL + $VALUE)
+    message: "Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. Data replacement or data binding should be used. See https://sequelize.org/master/manual"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.sequelize-raw-query-6
+    pattern: $QUERY = $SQL + $VALUE
+...
+Sequelize.literal($QUERY)
+    message: "Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. Data replacement or data binding should be used. See https://sequelize.org/master/manual"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.disallow-old-tls-versions2
+    pattern: $OPTIONS = {};
+...
+$HTTPS.createServer($OPTIONS, ...);
+    message: "Detects creations of $HTTPS servers from option objects that don't disallow SSL v2, SSL v3, and TLS v1. These protocols are deprecated due to POODLE, man in the middle attacks, and other vulnerabiliti"
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: community.react-find-dom
+    pattern: findDOMNode(...)
+    message: "findDOMNode is an escape hatch used to access the underlying DOM node. In most cases, use of this escape hatch is discouraged because it pierces the component abstraction."
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  - id: community.mui-snackbar-message
+    pattern: enqueueSnackbar('$MESSAGE', $X2)
+    message: "React MUI enqueueSnackbar() title is not internationalized: '$MESSAGE'"
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  - id: community.useselect-label-not-i18n
+    pattern: useSelect($X1, $X2, '$LABEL', $X4)
+    message: "React useSelect() label is not internationalized - '$LABEL'. You should support different langauges in your website or app with internationalization. Instead, use packages such as `i18next` to interna"
+    languages: [typescript, javascript]
+    severity: WARNING
+

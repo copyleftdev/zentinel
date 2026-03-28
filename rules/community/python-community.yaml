@@ -1,0 +1,1861 @@
+rules:
+  - id: community.cohere-hardcoded-api-key-python-1
+    pattern: cohere.Client(api_key="$KEY", ...)
+    message: "Cohere API key is hardcoded in source code. Use environment variables or a secrets manager instead."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.cohere-hardcoded-api-key-python-2
+    pattern: cohere.ClientV2(api_key="$KEY", ...)
+    message: "Cohere API key is hardcoded in source code. Use environment variables or a secrets manager instead."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.gemini-missing-system-instruction-python
+    pattern: genai.GenerativeModel(...)
+    message: "Gemini GenerativeModel created without 'system_instruction' parameter. A system instruction helps establish behavioral guidelines and safety boundaries for the model. See https://ai.google.dev/gemini-"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.llm-api-key-in-source-python
+    pattern: $VAR = "$KEY"
+    message: "AI/LLM API key found hardcoded in source code. Detected key prefix matches a known AI provider (OpenAI, Anthropic, Google, Hugging Face). Use environment variables or a secrets manager instead."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.mistral-hardcoded-api-key-python-1
+    pattern: Mistral(api_key="$KEY", ...)
+    message: "Mistral API key is hardcoded in source code. Use environment variables or a secrets manager instead."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.mistral-hardcoded-api-key-python-2
+    pattern: MistralClient(api_key="$KEY", ...)
+    message: "Mistral API key is hardcoded in source code. Use environment variables or a secrets manager instead."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.detect-anthropic-1
+    pattern: Anthropic(...)
+    message: "Possibly found usage of AI: Anthropic"
+    languages: [python]
+    severity: INFO
+
+  - id: community.detect-anthropic-2
+    pattern: anthropic.Anthropic(...)
+    message: "Possibly found usage of AI: Anthropic"
+    languages: [python]
+    severity: INFO
+
+  - id: community.detect-langchain-1
+    pattern: ChatOpenAI(...)
+    message: "Possibly found usage of AI tooling: LangChain"
+    languages: [python]
+    severity: INFO
+
+  - id: community.detect-langchain-2
+    pattern: Ollama(...)
+    message: "Possibly found usage of AI tooling: LangChain"
+    languages: [python]
+    severity: INFO
+
+  - id: community.detect-langchain-3
+    pattern: ChatAnthropic(...)
+    message: "Possibly found usage of AI tooling: LangChain"
+    languages: [python]
+    severity: INFO
+
+  - id: community.detect-langchain-4
+    pattern: ChatCohere(...)
+    message: "Possibly found usage of AI tooling: LangChain"
+    languages: [python]
+    severity: INFO
+
+  - id: community.detect-mistral
+    pattern: MistralClient(...)
+    message: "Possibly found usage of AI: Mistral"
+    languages: [python]
+    severity: INFO
+
+  - id: community.detect-openai
+    pattern: OpenAI(...)
+    message: "Possibly found usage of AI: OpenAI"
+    languages: [python]
+    severity: INFO
+
+  - id: community.formatted-string-bashoperator-1
+    pattern: airflow.operators.bash_operator.BashOperator(..., bash_command="..." + $CONCAT, ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-2
+    pattern: airflow.operators.bash_operator.BashOperator(..., bash_command="...".format(...), ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-3
+    pattern: airflow.operators.bash_operator.BashOperator(..., bash_command=f"...", ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-4
+    pattern: airflow.operators.bash_operator.BashOperator(..., bash_command="..." % $PARAMS, ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-5
+    pattern: $CMD = "..." % $PARAMS
+...
+airflow.operators.bash_operator.BashOperator(..., bash_command=$CMD, ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-6
+    pattern: $CMD = $STR.format(...)
+...
+airflow.operators.bash_operator.BashOperator(..., bash_command=$CMD, ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-7
+    pattern: $CMD = f"..."
+...
+airflow.operators.bash_operator.BashOperator(..., bash_command=$CMD, ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-8
+    pattern: $CMD = "..." + $CONCAT
+...
+airflow.operators.bash_operator.BashOperator(..., bash_command=$CMD, ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.formatted-string-bashoperator-9
+    pattern: $CMD = "..."
+...
+$CMD += $CONCAT
+...
+airflow.operators.bash_operator.BashOperator(..., bash_command=$CMD, ...)
+    message: "Found a formatted string in BashOperator: $CMD. This could be vulnerable to injection. Be extra sure your variables are not controllable by external sources."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.use-click-secho
+    pattern: click.echo(click.style($X, ...))
+    message: "Use `click.secho($X)` instead. It combines click.echo() and click.style()."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.empty-aes-key
+    pattern: AES.new("",...)
+    message: "Potential empty AES encryption key. Using an empty key in AES encryption can result in weak encryption and may allow attackers to easily decrypt sensitive data. Ensure that a strong, non-empty key is "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-mode-ecb
+    pattern: cryptography.hazmat.primitives.ciphers.modes.ECB($IV)
+    message: "ECB (Electronic Code Book) is the simplest mode of operation for block ciphers.  Each block of data is encrypted in the same way.  This means identical plaintext blocks will always result in identical"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.require-encryption
+    pattern: distributed.security.Security(..., require_encryption=$VAL, ...)
+    message: "Initializing a security context for Dask (`distributed`) without \"require_encryption\" keyword argument may silently fail to provide security."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.use-json-response
+    pattern: $Y = json.dumps(...)
+...
+django.http.HttpResponse($Y, ...)
+    message: "Use JsonResponse instead"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.use-onetoonefield
+    pattern: $F = django.db.models.ForeignKey(..., unique=True, ...)
+    message: "Use 'django.db.models.OneToOneField' instead of 'ForeignKey' with unique=True. 'OneToOneField' is used to create one-to-one relationships."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.django-compat-2_0-signals-weak
+    pattern: django.dispatch.signals.Signal.disconnect(..., weak=$X, ...)
+    message: "The weak argument to django.dispatch.signals.Signal.disconnect() is removed in Django 2.0."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.django-compat-2_0-check-aggregate-support
+    pattern: django.db.backends.base.BaseDatabaseOperations.check_aggregate_support(...)
+    message: "django.db.backends.base.BaseDatabaseOperations.check_aggregate_support() is removed in Django 2.0."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.django-compat-2_0-assignment-tag
+    pattern: assignment_tag(...)
+    message: "The assignment_tag helper is removed in Django 2.0."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.django-compat-2_0-assert-redirects-helper
+    pattern: assertRedirects(..., host=$Y, ...)
+    message: "The host argument to assertRedirects is removed in Django 2.0."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.nontext-field-must-set-null-true
+    pattern: $F = $X(..., blank=True, ...)
+    message: "null=True should be set if blank=True is set on non-text fields."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.use-decimalfield-for-money
+    pattern: $F = django.db.models.FloatField(...)
+    message: "Found a FloatField used for variable $F. Use DecimalField for currency fields to avoid float-rounding errors."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.avoid-mark-safe
+    pattern: django.utils.safestring.mark_safe(...)
+    message: "'mark_safe()' is used to mark a string as \"safe\" for HTML output. This disables escaping and could therefore subject the content to XSS attacks. Use 'django.utils.html.format_html()' to build HTML for"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.django-secure-set-cookie
+    pattern: response.set_cookie(...)
+    message: "Django cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in response.set_cookie(...). If your situation calls for different settings, explicitly disable the "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.formathtml-fstring-parameter-1
+    pattern: format_html(<... f"..." ...>, ...)
+    message: "Passing a formatted string as first parameter to `format_html` disables the proper encoding of variables. Any HTML in the first parameter is not encoded. Using a formatted string as first parameter ob"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.formathtml-fstring-parameter-2
+    pattern: format_html("..." % ..., ...)
+    message: "Passing a formatted string as first parameter to `format_html` disables the proper encoding of variables. Any HTML in the first parameter is not encoded. Using a formatted string as first parameter ob"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.formathtml-fstring-parameter-3
+    pattern: format_html("...".format(...), ...)
+    message: "Passing a formatted string as first parameter to `format_html` disables the proper encoding of variables. Any HTML in the first parameter is not encoded. Using a formatted string as first parameter ob"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.html-safe
+    pattern: django.utils.html.html_safe(...)
+    message: "`html_safe()` add the `__html__` magic method to the provided class. The `__html__` method indicates to the Django template engine that the value is 'safe' for rendering. This means that normal HTML e"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.globals-as-template-context-1
+    pattern: django.shortcuts.render(..., globals(...), ...)
+    message: "Using 'globals()' as a context to 'render(...)' is extremely dangerous. This exposes Python functions to the template that were not meant to be exposed. An attacker could use these functions to execut"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.globals-as-template-context-2
+    pattern: django.template.Template.render(..., globals(...), ...)
+    message: "Using 'globals()' as a context to 'render(...)' is extremely dangerous. This exposes Python functions to the template that were not meant to be exposed. An attacker could use these functions to execut"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.hashids-with-django-secret-1
+    pattern: hashids.Hashids(..., salt=django.conf.settings.SECRET_KEY, ...)
+    message: "The Django secret key is used as salt in HashIDs. The HashID mechanism is not secure. By observing sufficient HashIDs, the salt used to construct them can be recovered. This means the Django secret ke"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.hashids-with-django-secret-2
+    pattern: hashids.Hashids(django.conf.settings.SECRET_KEY, ...)
+    message: "The Django secret key is used as salt in HashIDs. The HashID mechanism is not secure. By observing sufficient HashIDs, the salt used to construct them can be recovered. This means the Django secret ke"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.request-data-write-1
+    pattern: $DATA = request.$W.get(...)
+...
+$F.write(..., $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-2
+    pattern: $DATA = request.$W.get(...)
+...
+$INTERM = $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-3
+    pattern: $DATA = request.$W.get(...)
+...
+$F.write(..., $B.$C(..., $DATA, ...), ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-4
+    pattern: $DATA = request.$W.get(...)
+...
+$INTERM = $B.$C(..., $DATA, ...)
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-5
+    pattern: $DATA = request.$W.get(...)
+...
+$F.write(..., $STR % $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-6
+    pattern: $DATA = request.$W.get(...)
+...
+$INTERM = $STR % $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-7
+    pattern: $DATA = request.$W.get(...)
+...
+$F.write(..., f"...{$DATA}...", ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-8
+    pattern: $DATA = request.$W.get(...)
+...
+$INTERM = f"...{$DATA}..."
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-9
+    pattern: $A = $F.write(..., request.$W.get(...), ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-10
+    pattern: $DATA = request.$W(...)
+...
+$F.write(..., $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-11
+    pattern: $DATA = request.$W(...)
+...
+$INTERM = $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-12
+    pattern: $DATA = request.$W(...)
+...
+$F.write(..., $B.$C(..., $DATA, ...), ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-13
+    pattern: $DATA = request.$W(...)
+...
+$INTERM = $B.$C(..., $DATA, ...)
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-14
+    pattern: $DATA = request.$W(...)
+...
+$F.write(..., $STR % $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-15
+    pattern: $DATA = request.$W(...)
+...
+$INTERM = $STR % $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-16
+    pattern: $DATA = request.$W(...)
+...
+$F.write(..., f"...{$DATA}...", ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-17
+    pattern: $DATA = request.$W(...)
+...
+$INTERM = f"...{$DATA}..."
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-18
+    pattern: $A = $F.write(..., request.$W(...), ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-19
+    pattern: $DATA = request.$W[...]
+...
+$F.write(..., $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-20
+    pattern: $DATA = request.$W[...]
+...
+$INTERM = $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-21
+    pattern: $DATA = request.$W[...]
+...
+$F.write(..., $B.$C(..., $DATA, ...), ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-22
+    pattern: $DATA = request.$W[...]
+...
+$INTERM = $B.$C(..., $DATA, ...)
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-23
+    pattern: $DATA = request.$W[...]
+...
+$F.write(..., $STR % $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-24
+    pattern: $DATA = request.$W[...]
+...
+$INTERM = $STR % $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-25
+    pattern: $DATA = request.$W[...]
+...
+$F.write(..., f"...{$DATA}...", ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-26
+    pattern: $DATA = request.$W[...]
+...
+$INTERM = f"...{$DATA}..."
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-27
+    pattern: $A = $F.write(..., request.$W[...], ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-28
+    pattern: $DATA = request.$W
+...
+$F.write(..., $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-29
+    pattern: $DATA = request.$W
+...
+$INTERM = $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-30
+    pattern: $DATA = request.$W
+...
+$F.write(..., $B.$C(..., $DATA, ...), ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-31
+    pattern: $DATA = request.$W
+...
+$INTERM = $B.$C(..., $DATA, ...)
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-32
+    pattern: $DATA = request.$W
+...
+$F.write(..., $STR % $DATA, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-33
+    pattern: $DATA = request.$W
+...
+$INTERM = $STR % $DATA
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-34
+    pattern: $DATA = request.$W
+...
+$F.write(..., f"...{$DATA}...", ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-35
+    pattern: $DATA = request.$W
+...
+$INTERM = f"...{$DATA}..."
+...
+$F.write(..., $INTERM, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.request-data-write-36
+    pattern: $A = $F.write(..., request.$W, ...)
+    message: "Found user-controlled request data passed into '.write(...)'. This could be dangerous if a malicious actor is able to control data into sensitive files. For example, a malicious actor could force roll"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.locals-as-template-context-1
+    pattern: django.shortcuts.render(..., locals(...), ...)
+    message: "Using 'locals()' as a context to 'render(...)' is extremely dangerous. This exposes Python functions to the template that were not meant to be exposed. An attacker could use these functions to execute"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.locals-as-template-context-2
+    pattern: django.template.Template.render(..., locals(...), ...)
+    message: "Using 'locals()' as a context to 'render(...)' is extremely dangerous. This exposes Python functions to the template that were not meant to be exposed. An attacker could use these functions to execute"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.flask-deprecated-apis-1
+    pattern: $F = Flask(...)
+...
+$F.open_session(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-2
+    pattern: $F = Flask(...)
+...
+$F.save_session(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-3
+    pattern: $F = Flask(...)
+...
+$F.make_null_session(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-4
+    pattern: $F = Flask(...)
+...
+$F.init_jinja_globals(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-5
+    pattern: $F = Flask(...)
+...
+$F.request_globals_class(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-6
+    pattern: $F = Flask(...)
+...
+$F.static_path(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-7
+    pattern: app.open_session(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-8
+    pattern: app.save_session(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-9
+    pattern: app.make_null_session(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-10
+    pattern: app.init_jinja_globals(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-11
+    pattern: app.request_globals_class(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-12
+    pattern: app.static_path(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-13
+    pattern: app.config.from_json(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.flask-deprecated-apis-14
+    pattern: flask.testing.make_test_environ_builder(...)
+    message: "deprecated Flask API"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.avoid_app_run_with_bad_host-1
+    pattern: app.run(..., host="0.0.0.0", ...)
+    message: "Running flask app with host 0.0.0.0 could expose the server publicly."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.avoid_app_run_with_bad_host-2
+    pattern: app.run(..., "0.0.0.0", ...)
+    message: "Running flask app with host 0.0.0.0 could expose the server publicly."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.avoid_using_app_run_directly
+    pattern: app.run(...)
+    message: "top-level app.run(...) is ignored by flask. Consider putting app.run(...) behind a guard, like inside a function"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.render-template-string
+    pattern: flask.render_template_string(...)
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.make-response-with-unknown-content
+    pattern: flask.make_response(...)
+    message: "Be careful with `flask.make_response()`. If this response is rendered onto a webpage, this could create a cross-site scripting (XSS) vulnerability. `flask.make_response()` will not autoescape HTML. If"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.dangerous-template-string-1
+    pattern: $V = "...".format(...)
+...
+flask.render_template_string($V, ...)
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.dangerous-template-string-2
+    pattern: $V = "...".format(...)
+...
+return flask.render_template_string($V, ...), $MORE
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.dangerous-template-string-3
+    pattern: $V = "..." % $S
+...
+flask.render_template_string($V, ...)
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.dangerous-template-string-4
+    pattern: $V = "..." % $S
+...
+return flask.render_template_string($V, ...), $MORE
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.dangerous-template-string-5
+    pattern: $V = "..."
+...
+$V += $O
+...
+flask.render_template_string($V, ...)
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.dangerous-template-string-6
+    pattern: $V = "..."
+...
+$V += $O
+...
+return flask.render_template_string($V, ...), $MORE
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.dangerous-template-string-7
+    pattern: $V = f"...{$X}..."
+...
+flask.render_template_string($V, ...)
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.dangerous-template-string-8
+    pattern: $V = f"...{$X}..."
+...
+return flask.render_template_string($V, ...), $CODE
+    message: "Found a template created with string formatting. This is susceptible to server-side template injection and cross-site scripting attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.hashids-with-flask-secret-1
+    pattern: hashids.Hashids(..., salt=flask.current_app.config['SECRET_KEY'], ...)
+    message: "The Flask secret key is used as salt in HashIDs. The HashID mechanism is not secure. By observing sufficient HashIDs, the salt used to construct them can be recovered. This means the Flask secret key "
+    languages: [python]
+    severity: ERROR
+
+  - id: community.hashids-with-flask-secret-2
+    pattern: hashids.Hashids(flask.current_app.config['SECRET_KEY'], ...)
+    message: "The Flask secret key is used as salt in HashIDs. The HashID mechanism is not secure. By observing sufficient HashIDs, the salt used to construct them can be recovered. This means the Flask secret key "
+    languages: [python]
+    severity: ERROR
+
+  - id: community.os-system-injection-1
+    pattern: os.system(..., <... flask.request.$W.get(...) ...>, ...)
+    message: "User data detected in os.system. This could be vulnerable to a command injection and should be avoided. If this must be done, use the 'subprocess' module instead and pass the arguments as a list."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.os-system-injection-2
+    pattern: os.system(..., <... flask.request.$W[...] ...>, ...)
+    message: "User data detected in os.system. This could be vulnerable to a command injection and should be avoided. If this must be done, use the 'subprocess' module instead and pass the arguments as a list."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.os-system-injection-3
+    pattern: os.system(..., <... flask.request.$W(...) ...>, ...)
+    message: "User data detected in os.system. This could be vulnerable to a command injection and should be avoided. If this must be done, use the 'subprocess' module instead and pass the arguments as a list."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.os-system-injection-4
+    pattern: os.system(..., <... flask.request.$W ...>, ...)
+    message: "User data detected in os.system. This could be vulnerable to a command injection and should be avoided. If this must be done, use the 'subprocess' module instead and pass the arguments as a list."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.path-traversal-open-1
+    pattern: open(..., <... flask.request.$W.get(...) ...>, ...)
+    message: "Found request data in a call to 'open'. Ensure the request data is validated or sanitized, otherwise it could result in path traversal attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.path-traversal-open-2
+    pattern: open(..., <... flask.request.$W[...] ...>, ...)
+    message: "Found request data in a call to 'open'. Ensure the request data is validated or sanitized, otherwise it could result in path traversal attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.path-traversal-open-3
+    pattern: open(..., <... flask.request.$W(...) ...>, ...)
+    message: "Found request data in a call to 'open'. Ensure the request data is validated or sanitized, otherwise it could result in path traversal attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.path-traversal-open-4
+    pattern: open(..., <... flask.request.$W ...>, ...)
+    message: "Found request data in a call to 'open'. Ensure the request data is validated or sanitized, otherwise it could result in path traversal attacks."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.eval-injection-1
+    pattern: eval(..., <... flask.request.$W.get(...) ...>, ...)
+    message: "Detected user data flowing into eval. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.eval-injection-2
+    pattern: eval(..., <... flask.request.$W[...] ...>, ...)
+    message: "Detected user data flowing into eval. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.eval-injection-3
+    pattern: eval(..., <... flask.request.$W(...) ...>, ...)
+    message: "Detected user data flowing into eval. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.eval-injection-4
+    pattern: eval(..., <... flask.request.$W ...>, ...)
+    message: "Detected user data flowing into eval. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.exec-injection-1
+    pattern: exec(..., <... flask.request.$W.get(...) ...>, ...)
+    message: "Detected user data flowing into exec. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.exec-injection-2
+    pattern: exec(..., <... flask.request.$W[...] ...>, ...)
+    message: "Detected user data flowing into exec. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.exec-injection-3
+    pattern: exec(..., <... flask.request.$W(...) ...>, ...)
+    message: "Detected user data flowing into exec. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.exec-injection-4
+    pattern: exec(..., <... flask.request.$W ...>, ...)
+    message: "Detected user data flowing into exec. This is code injection and should be avoided."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.avoid_send_file_without_path_sanitization
+    pattern: flask.send_file(filename, ...)
+    message: "Detected a user-controlled `filename` that could flow to `flask.send_file()` function. This could lead to an attacker reading arbitrary file from the system, leaking private information. Make sure to "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.response-contains-unsanitized-input-1
+    pattern: $X = flask.request.args.get(...)
+...
+flask.make_response("...".format($X))
+    message: "Flask response reflects unsanitized user input. This could lead to a cross-site scripting vulnerability (https://owasp.org/www-community/attacks/xss/) in which an attacker causes arbitrary code to be "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.response-contains-unsanitized-input-2
+    pattern: $X = flask.request.args.get(...)
+...
+flask.make_response(f"...{$X}...")
+    message: "Flask response reflects unsanitized user input. This could lead to a cross-site scripting vulnerability (https://owasp.org/www-community/attacks/xss/) in which an attacker causes arbitrary code to be "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.response-contains-unsanitized-input-3
+    pattern: $X = flask.request.args.get(...)
+...
+flask.make_response(f"...{$X}")
+    message: "Flask response reflects unsanitized user input. This could lead to a cross-site scripting vulnerability (https://owasp.org/www-community/attacks/xss/) in which an attacker causes arbitrary code to be "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.response-contains-unsanitized-input-4
+    pattern: $X = flask.request.args.get(...)
+...
+flask.make_response(f"{$X}...")
+    message: "Flask response reflects unsanitized user input. This could lead to a cross-site scripting vulnerability (https://owasp.org/www-community/attacks/xss/) in which an attacker causes arbitrary code to be "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.direct-use-of-jinja2-1
+    pattern: jinja2.Environment(...)
+    message: "Detected direct use of jinja2. If not done properly, this may bypass HTML escaping which opens up the application to cross-site scripting (XSS) vulnerabilities. Prefer using the Flask method 'render_t"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.direct-use-of-jinja2-2
+    pattern: jinja2.Template.render(...)
+    message: "Detected direct use of jinja2. If not done properly, this may bypass HTML escaping which opens up the application to cross-site scripting (XSS) vulnerabilities. Prefer using the Flask method 'render_t"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.explicit-unescape-with-markup
+    pattern: flask.Markup.unescape(...)
+    message: "Detected explicitly unescaped content using 'Markup()'. This permits the unescaped data to include unescaped HTML which could result in cross-site scripting. Ensure this data is not externally control"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.incorrect-autoescape-disabled
+    pattern: jinja2.Environment(... , autoescape=$VAL, ...)
+    message: "Detected a Jinja2 environment with 'autoescaping' disabled. This is dangerous if you are rendering to a browser because this allows for cross-site scripting (XSS) attacks. If you are in a web context,"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.jwt-python-exposed-data
+    pattern: jwt.encode($INPUT,...)
+    message: "The object is passed strictly to jwt.encode(...) Make sure that sensitive information is not exposed through JWT token payload."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.jwt-python-exposed-credentials-1
+    pattern: jwt.encode({...,"password":$P,...},...)
+    message: "Password is exposed through JWT token payload. This is not encrypted and the password could be compromised. Do not store passwords in JWT tokens."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.jwt-python-exposed-credentials-2
+    pattern: $PAYLOAD = {...,"password":$P,...}
+...
+jwt.encode($PAYLOAD,...)
+    message: "Password is exposed through JWT token payload. This is not encrypted and the password could be compromised. Do not store passwords in JWT tokens."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.jwt-python-hardcoded-secret
+    pattern: jwt.encode($_, "...", ...)
+    message: "Hardcoded JWT secret or private key is used. This is a Insufficiently Protected Credentials weakness: https://cwe.mitre.org/data/definitions/522.html Consider using an appropriate security mechanism t"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.jwt-python-none-alg-1
+    pattern: jwt.encode(...,algorithm="none",...)
+    message: "Detected use of the 'none' algorithm in a JWT token. The 'none' algorithm assumes the integrity of the token has already been verified. This would allow a malicious actor to forge a JWT token that wil"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.jwt-python-none-alg-2
+    pattern: jwt.decode(...,algorithms=[...,"none",...],...)
+    message: "Detected use of the 'none' algorithm in a JWT token. The 'none' algorithm assumes the integrity of the token has already been verified. This would allow a malicious actor to forge a JWT token that wil"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.hardcoded-tmp-path
+    pattern: open("=~/^\/tmp.*/", ...)
+    message: "Detected hardcoded temp directory. Consider using 'tempfile.TemporaryFile' instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.manual-defaultdict-dict-create-1
+    pattern: $DICT = {}
+...
+for $KEY, $VALUE in $OTHERDICT.items():
+    ...
+    if $KEY not in $DICT:
+        ...
+        $DICT[$KEY] = {}
+        ...
+    $DICT[$KEY].update(...)
+    message: "manually creating a defaultdict - use collections.defaultdict(dict)"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.manual-defaultdict-dict-create-2
+    pattern: $DICT = {}
+...
+for $KEY, $VALUE in $OTHERDICT.items():
+    ...
+    $DICT.setdefault($KEY, {}).update(...)
+    message: "manually creating a defaultdict - use collections.defaultdict(dict)"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.manual-defaultdict-set-create-1
+    pattern: $DICT = {}
+...
+for $KEY, $VALUE in $OTHERDICT.items():
+    ...
+    if $KEY not in $DICT:
+        ...
+        $DICT[$KEY] = set()
+        ...
+    $DICT[$KEY].add(...)
+    message: "manually creating a defaultdict - use collections.defaultdict(set)"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.manual-defaultdict-set-create-2
+    pattern: $DICT = {}
+...
+for $KEY, $VALUE in $OTHERDICT.items():
+    ...
+    $DICT.setdefault($KEY, set()).add(...)
+    message: "manually creating a defaultdict - use collections.defaultdict(set)"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.manual-defaultdict-list-create-1
+    pattern: $DICT = {}
+...
+for $KEY, $VALUE in $OTHERDICT.items():
+    ...
+    if $KEY not in $DICT:
+        ...
+        $DICT[$KEY] = []
+        ...
+    $DICT[$KEY].append(...)
+    message: "manually creating a defaultdict - use collections.defaultdict(list)"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.manual-defaultdict-list-create-2
+    pattern: $DICT = {}
+...
+for $KEY, $VALUE in $OTHERDICT.items():
+    ...
+    $DICT.setdefault($KEY, []).append(...)
+    message: "manually creating a defaultdict - use collections.defaultdict(list)"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.manual-counter-create
+    pattern: $DICT = {}
+...
+for $KEY, $VALUE in $OTHERDICT.items():
+    ...
+    if $KEY not in $DICT:
+        ...
+        $DICT[$KEY] = 0
+        ...
+    $DICT[$KEY] += 1
+    message: "manually creating a counter - use collections.Counter"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.python-debugger-found
+    pattern: pdb.set_trace()
+    message: "Importing the python debugger; did you mean to leave this in?"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.python36-compatibility-ssl
+    pattern: ssl.get_ciphers()
+    message: "this function is only available on Python 3.6+"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python36-compatibility-Popen1
+    pattern: subprocess.Popen(errors=$X, ...)
+    message: "the `errors` argument to Popen is only available on Python 3.6+"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python36-compatibility-Popen2
+    pattern: subprocess.Popen(encoding=$X, ...)
+    message: "the `encoding` argument to Popen is only available on Python 3.6+"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-importlib
+    pattern: importlib.source_hash()
+    message: "source_hash' is only available on Python 3.7+. This does not work in lower versions, and therefore is not backwards compatible. Instead, use another hash function."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-httpconn
+    pattern: http.client.HTTPConnection(blocksize=$X,...)
+    message: "Found usage of the 'blocksize' argument in a HTTPConnection call. This is only available on Python 3.7+ and is therefore not backwards compatible. Remove this in order for this code to work in Python "
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-httpsconn
+    pattern: http.client.HTTPSConnection(blocksize=$X,...)
+    message: "Found usage of the 'blocksize' argument in a HTTPSConnection call. This is only available on Python 3.7+ and is therefore not backwards compatible. Remove this in order for this code to work in Python"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-textiowrapper
+    pattern: TextIOWrapper.reconfigure(...)
+    message: "Found usage of 'importlib.abc.ResourceReader'. This module is only available on Python 3.7+ and is therefore not backwards compatible. Instead, use another loader."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-ipv6network1
+    pattern: ipaddress.IPv6Network.subnet_of($X)
+    message: "IPv6Network.subnet_of is only available on Python 3.7+ and is therefore not backwards compatible. Instead, check if the subnet is in 'subnets'."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-ipv6network2
+    pattern: ipaddress.IPv6Network.supernet_of($X)
+    message: "IPv6Network.supernet_of is only available on Python 3.7+ and is therefore not backwards compatible. Instead, check if the supernet is in 'supernet'."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-ipv4network1
+    pattern: ipaddress.IPv4Network.subnet_of($X)
+    message: "IPv4Network.subnet_of is only available on Python 3.7+ and is therefore not backwards compatible. Instead, check if the subnet is in 'subnets'."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-ipv4network2
+    pattern: ipaddress.IPv4Network.supernet_of($X)
+    message: "IPv4Network.supernet_of is only available on Python 3.7+ and is therefore not backwards compatible. Instead, check if the supernet is in 'supernet'."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-locale1
+    pattern: locale.format_string(monetary=$X, ...)
+    message: "Found usage of the 'monetary' argument in a function call of 'locale.format_string'. This is only available on Python 3.7+ and is therefore not backwards compatible. Instead, remove the 'monetary' arg"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-math1
+    pattern: math.remainder($X, $Y)
+    message: "math.remainder is only available on Python 3.7+ and is therefore not backwards compatible. Instead, use math.fmod() or calculate $X - n* $Y."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-multiprocess1
+    pattern: multiprocessing.Process.close()
+    message: "multiprocessing.Process.close() is only available on Python 3.7+ and is therefore not backwards compatible. Instead, use join()."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-multiprocess2
+    pattern: multiprocessing.Process.kill()
+    message: "multiprocessing.Process.kill() is only available on Python 3.7+ and is therefore not backwards compatible. Instead, use terminate()."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-os1
+    pattern: os.preadv(...)
+    message: "os.preadv() is only available on Python 3.7+ and is therefore not backwards compatible. Instead, use a combination of os.readv() and os.pread()."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-os2-ok2
+    pattern: os.pwritev(...)
+    message: "os.pwritev() is only available on Python 3.3+ and is therefore not backwards compatible. Instead, use a combination of pwrite() and writev()."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.python37-compatibility-pdb
+    pattern: pdb.set_trace(header=$X, ...)
+    message: "pdb.set_trace() with the header argument is only available on Python 3.7+ and is therefore not backwards compatible. Instead, use set_trace() without the header argument."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.cannot-cache-generators
+    pattern: functools.lru_cache(...)
+    message: "Generators can only be consumed once, so in most cases, caching them will cause an error when the already-consumed generator is retrieved from cache."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.use-sys-exit
+    pattern: exit($X)
+    message: "Detected use of `exit`. Use `sys.exit` over the python shell `exit` built-in. `exit` is a helper for the interactive shell and may not be available on all Python implementations."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.file-object-redefined-before-close
+    pattern: $F = open($X, ...)
+...
+$F = open($Y, ...)
+    message: "Detected a file object that is redefined and never closed. This could leak file descriptors and unnecessarily consume system resources."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.pytest-assert_match-after-path-patch
+    pattern: snapshot.assert_match(...)
+    message: "snapshot.assert_match makes use of pathlib to create files. Patching $METHOD may result in unexpected snapshot behavior"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.sync-sleep-in-async-code
+    pattern: time.sleep(...)
+    message: "Synchronous time.sleep in async code will block the event loop and not allow other tasks to execute. Use asyncio.sleep() instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.tempfile-insecure
+    pattern: tempfile.mktemp(...)
+    message: "Use tempfile.NamedTemporaryFile instead. From the official Python documentation: THIS FUNCTION IS UNSAFE AND SHOULD NOT BE USED. The file name may refer to a file that did not exist at some point, but"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.test-is-missing-assert
+    pattern: $A == $B
+    message: "Comparison without assertion. The result of this comparison is not used. Perhaps this expression is missing an `assert` keyword."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.useless-literal-set
+    pattern: set(..., ($X, $A), ..., ($X, $B), ...)
+    message: "`$X` is uselessly assigned twice inside the creation of the set"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.multiprocessing-recv-1
+    pattern: multiprocessing.connection.Connection.recv(...)
+    message: "The Connection.recv() method automatically unpickles the data it receives, which can be a security risk unless you can trust the process which sent the message. Therefore, unless the connection object"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.multiprocessing-recv-2
+    pattern: multiprocessing.connection.Client.recv(...)
+    message: "The Connection.recv() method automatically unpickles the data it receives, which can be a security risk unless you can trust the process which sent the message. Therefore, unless the connection object"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.multiprocessing-recv-3
+    pattern: $C = multiprocessing.connection.Client(...)
+...
+$C.recv(...)
+    message: "The Connection.recv() method automatically unpickles the data it receives, which can be a security risk unless you can trust the process which sent the message. Therefore, unless the connection object"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.dangerous-subinterpreters-run-string-audit
+    pattern: _xxsubinterpreters.run_string($ID, $PAYLOAD, ...)
+    message: "Found dynamic content in `run_string`. This is dangerous if external data can reach this function call because it allows a malicious actor to run arbitrary Python code. Ensure no external data reaches"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.eval-detected
+    pattern: eval(...)
+    message: "Detected the use of eval(). eval() can be dangerous if used to evaluate dynamic content. If this content can be input from outside the program, this may be a code injection vulnerability. Ensure evalu"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.exec-detected
+    pattern: exec(...)
+    message: "Detected the use of exec(). exec() can be dangerous if used to evaluate dynamic content. If this content can be input from outside the program, this may be a code injection vulnerability. Ensure evalu"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.httpsconnection-detected-1
+    pattern: httplib.HTTPSConnection(...)
+    message: "The HTTPSConnection API has changed frequently with minor releases of Python. Ensure you are using the API for your version of Python securely. For example, Python 3 versions prior to 3.4.3 will not v"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.httpsconnection-detected-2
+    pattern: http.client.HTTPSConnection(...)
+    message: "The HTTPSConnection API has changed frequently with minor releases of Python. Ensure you are using the API for your version of Python securely. For example, Python 3 versions prior to 3.4.3 will not v"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.httpsconnection-detected-3
+    pattern: six.moves.http_client.HTTPSConnection(...)
+    message: "The HTTPSConnection API has changed frequently with minor releases of Python. Ensure you are using the API for your version of Python securely. For example, Python 3 versions prior to 3.4.3 will not v"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.use-ftp-tls
+    pattern: ftplib.FTP(...)
+    message: "The 'FTP' class sends information unencrypted. Consider using the 'FTP_TLS' class instead."
+    languages: [python]
+    severity: INFO
+
+  - id: community.insecure-openerdirector-open-ftp-1
+    pattern: urllib.request.OpenerDirector(...).open("=~/^[Ff][Tt][Pp]://.*/", ...)
+    message: "Detected an unsecured transmission channel. 'OpenerDirector.open(...)' is being used with 'ftp://'. Information sent over this connection will be unencrypted. Consider using SFTP instead. urllib does "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-openerdirector-open-ftp-2
+    pattern: $URL = "=~/^[Ff][Tt][Pp]://.*/"
+...
+urllib.request.OpenerDirector(...).open($URL, ...)
+    message: "Detected an unsecured transmission channel. 'OpenerDirector.open(...)' is being used with 'ftp://'. Information sent over this connection will be unencrypted. Consider using SFTP instead. urllib does "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-openerdirector-open-1
+    pattern: urllib.request.OpenerDirector(...).open("=~/[Hh][Tt][Tt][Pp]://.*/", ...)
+    message: "Detected an unsecured transmission channel. 'OpenerDirector.open(...)' is being used with 'http://'. Use 'https://' instead to secure the channel."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-openerdirector-open-2
+    pattern: $URL = "=~/[Hh][Tt][Tt][Pp]://.*/"
+...
+urllib.request.OpenerDirector(...).open($URL, ...)
+    message: "Detected an unsecured transmission channel. 'OpenerDirector.open(...)' is being used with 'http://'. Use 'https://' instead to secure the channel."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-request-object-ftp-1
+    pattern: urllib.request.Request("=~/^[Ff][Tt][Pp]://.*/", ...)
+    message: "Detected a 'urllib.request.Request()' object using an insecure transport protocol, 'ftp://'. This connection will not be encrypted. Consider using SFTP instead. urllib does not support SFTP natively, "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-request-object-ftp-2
+    pattern: $URL = "=~/^[Ff][Tt][Pp]://.*/"
+...
+urllib.request.Request($URL, ...)
+    message: "Detected a 'urllib.request.Request()' object using an insecure transport protocol, 'ftp://'. This connection will not be encrypted. Consider using SFTP instead. urllib does not support SFTP natively, "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-request-object-1
+    pattern: urllib.request.Request("=~/[Hh][Tt][Tt][Pp]://.*/", ...)
+    message: "Detected a 'urllib.request.Request()' object using an insecure transport protocol, 'http://'. This connection will not be encrypted. Use 'https://' instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-request-object-2
+    pattern: $URL = "=~/[Hh][Tt][Tt][Pp]://.*/"
+...
+urllib.request.Request($URL, ...)
+    message: "Detected a 'urllib.request.Request()' object using an insecure transport protocol, 'http://'. This connection will not be encrypted. Use 'https://' instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopen-ftp-1
+    pattern: urllib.request.urlopen("=~/^[Ff][Tt][Pp]://.*/", ...)
+    message: "Detected 'urllib.urlopen()' using 'ftp://'. This request will not be encrypted. Consider using SFTP instead. urllib does not support SFTP, so consider switching to a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopen-ftp-2
+    pattern: $URL = "=~/^[Ff][Tt][Pp]://.*/"
+...
+urllib.request.urlopen($URL, ...)
+    message: "Detected 'urllib.urlopen()' using 'ftp://'. This request will not be encrypted. Consider using SFTP instead. urllib does not support SFTP, so consider switching to a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopen-1
+    pattern: urllib.request.urlopen("=~/[Hh][Tt][Tt][Pp]://.*/", ...)
+    message: "Detected 'urllib.urlopen()' using 'http://'. This request will not be encrypted. Use 'https://' instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopen-2
+    pattern: $URL = "=~/[Hh][Tt][Tt][Pp]://.*/"
+...
+urllib.request.urlopen($URL, ...)
+    message: "Detected 'urllib.urlopen()' using 'http://'. This request will not be encrypted. Use 'https://' instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-open-ftp-1
+    pattern: urllib.request.URLopener(...).open("=~/[Ff][Tt][Pp]://.*/", ...)
+    message: "Detected an insecure transmission channel. 'URLopener.open(...)' is being used with 'ftp://'. Use SFTP instead. urllib does not support SFTP, so consider using a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-open-ftp-2
+    pattern: $URL = "=~/[Ff][Tt][Pp]://.*/"
+...
+urllib.request.URLopener(...).open($URL, ...)
+    message: "Detected an insecure transmission channel. 'URLopener.open(...)' is being used with 'ftp://'. Use SFTP instead. urllib does not support SFTP, so consider using a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-open-1
+    pattern: urllib.request.URLopener(...).open("=~/[Hh][Tt][Tt][Pp]://.*/", ...)
+    message: "Detected an unsecured transmission channel. 'URLopener.open(...)' is being used with 'http://'. Use 'https://' instead to secure the channel."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-open-2
+    pattern: $URL = "=~/[Hh][Tt][Tt][Pp]://.*/"
+...
+urllib.request.URLopener(...).open($URL, ...)
+    message: "Detected an unsecured transmission channel. 'URLopener.open(...)' is being used with 'http://'. Use 'https://' instead to secure the channel."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-retrieve-ftp-1
+    pattern: urllib.request.URLopener(...).retrieve("=~/[Ff][Tt][Pp]://.*/", ...)
+    message: "Detected an insecure transmission channel. 'URLopener.retrieve(...)' is being used with 'ftp://'. Use SFTP instead. urllib does not support SFTP, so consider using a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-retrieve-ftp-2
+    pattern: $URL = "=~/[Ff][Tt][Pp]://.*/"
+...
+urllib.request.URLopener(...).retrieve($URL, ...)
+    message: "Detected an insecure transmission channel. 'URLopener.retrieve(...)' is being used with 'ftp://'. Use SFTP instead. urllib does not support SFTP, so consider using a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-retrieve-1
+    pattern: urllib.request.URLopener(...).retrieve("=~/[Hh][Tt][Tt][Pp]://.*/", ...)
+    message: "Detected an unsecured transmission channel. 'URLopener.retrieve(...)' is being used with 'http://'. Use 'https://' instead to secure the channel."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlopener-retrieve-2
+    pattern: $URL = "=~/[Hh][Tt][Tt][Pp]://.*/"
+...
+urllib.request.URLopener(...).retrieve($URL, ...)
+    message: "Detected an unsecured transmission channel. 'URLopener.retrieve(...)' is being used with 'http://'. Use 'https://' instead to secure the channel."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlretrieve-ftp-1
+    pattern: urllib.request.urlretrieve("=~/^[Ff][Tt][Pp]://.*/", ...)
+    message: "Detected 'urllib.urlretrieve()' using 'ftp://'. This request will not be encrypted. Use SFTP instead. urllib does not support SFTP, so consider switching to a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlretrieve-ftp-2
+    pattern: $URL = "=~/^[Ff][Tt][Pp]://.*/"
+...
+urllib.request.urlretrieve($URL, ...)
+    message: "Detected 'urllib.urlretrieve()' using 'ftp://'. This request will not be encrypted. Use SFTP instead. urllib does not support SFTP, so consider switching to a library which supports SFTP."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlretrieve-1
+    pattern: urllib.request.urlretrieve("=~/[Hh][Tt][Tt][Pp]://.*/", ...)
+    message: "Detected 'urllib.urlretrieve()' using 'http://'. This request will not be encrypted. Use 'https://' instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-urlretrieve-2
+    pattern: $URL = "=~/[Hh][Tt][Tt][Pp]://.*/"
+...
+urllib.request.urlretrieve($URL, ...)
+    message: "Detected 'urllib.urlretrieve()' using 'http://'. This request will not be encrypted. Use 'https://' instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.listen-eval
+    pattern: logging.config.listen(...)
+    message: "Because portions of the logging configuration are passed through eval(), use of this function may open its users to a security risk. While the function only binds to a socket on localhost, and so does"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.mako-templates-detected
+    pattern: mako.template.Template(...)
+    message: "Mako templates do not provide a global HTML escaping mechanism. This means you must escape all sensitive data in your templates using '| u' for URL escaping or '| h' for HTML escaping. If you are usin"
+    languages: [python]
+    severity: INFO
+
+  - id: community.marshal-usage-1
+    pattern: marshal.dump(...)
+    message: "The marshal module is not intended to be secure against erroneous or maliciously constructed data. Never unmarshal data received from an untrusted or unauthenticated source. See more details: https://"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.marshal-usage-2
+    pattern: marshal.dumps(...)
+    message: "The marshal module is not intended to be secure against erroneous or maliciously constructed data. Never unmarshal data received from an untrusted or unauthenticated source. See more details: https://"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.marshal-usage-3
+    pattern: marshal.load(...)
+    message: "The marshal module is not intended to be secure against erroneous or maliciously constructed data. Never unmarshal data received from an untrusted or unauthenticated source. See more details: https://"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.marshal-usage-4
+    pattern: marshal.loads(...)
+    message: "The marshal module is not intended to be secure against erroneous or maliciously constructed data. Never unmarshal data received from an untrusted or unauthenticated source. See more details: https://"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.avoid-bind-to-all-interfaces-1
+    pattern: $S = socket.socket(...)
+...
+$S.bind(("0.0.0.0", ...))
+    message: "Running `socket.bind` to 0.0.0.0, or empty string could unexpectedly expose the server publicly as it binds to all available interfaces. Consider instead getting correct address from an environment va"
+    languages: [python]
+    severity: INFO
+
+  - id: community.avoid-bind-to-all-interfaces-2
+    pattern: $S = socket.socket(...)
+...
+$S.bind(("::", ...))
+    message: "Running `socket.bind` to 0.0.0.0, or empty string could unexpectedly expose the server publicly as it binds to all available interfaces. Consider instead getting correct address from an environment va"
+    languages: [python]
+    severity: INFO
+
+  - id: community.avoid-bind-to-all-interfaces-3
+    pattern: $S = socket.socket(...)
+...
+$S.bind(("", ...))
+    message: "Running `socket.bind` to 0.0.0.0, or empty string could unexpectedly expose the server publicly as it binds to all available interfaces. Consider instead getting correct address from an environment va"
+    languages: [python]
+    severity: INFO
+
+  - id: community.http-not-https-connection-1
+    pattern: urllib3.HTTPConnectionPool(...)
+    message: "Detected HTTPConnectionPool. This will transmit data in cleartext. It is recommended to use HTTPSConnectionPool instead for to encrypt communications."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.http-not-https-connection-2
+    pattern: urllib3.connectionpool.HTTPConnectionPool(...)
+    message: "Detected HTTPConnectionPool. This will transmit data in cleartext. It is recommended to use HTTPSConnectionPool instead for to encrypt communications."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.non-literal-import
+    pattern: importlib.import_module($NAME, ...)
+    message: "Untrusted user input in `importlib.import_module()` function allows an attacker to load arbitrary code. Avoid dynamic values in `importlib.import_module()` or use a whitelist to prevent running untrus"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.regex_dos
+    pattern: $A = re.compile("$B", ...)
+...
+$A.$METHOD(...)
+    message: "Detected usage of re.compile with an inefficient regular expression. This can lead to regular expression denial of service, which can result in service down time. Instead, check all regexes or use saf"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.sha224-hash-1
+    pattern: hashlib.sha224(...)
+    message: "This code uses a 224-bit hash function, which is deprecated or disallowed in some security policies. Consider updating to a stronger hash function such as SHA-384 or higher to ensure compliance and se"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.sha224-hash-2
+    pattern: hashlib.sha3_224(...)
+    message: "This code uses a 224-bit hash function, which is deprecated or disallowed in some security policies. Consider updating to a stronger hash function such as SHA-384 or higher to ensure compliance and se"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.ssl-wrap-socket-is-deprecated
+    pattern: ssl.wrap_socket(...)
+    message: "'ssl.wrap_socket()' is deprecated. This function creates an insecure socket without server name indication or hostname matching. Instead, create an SSL context using 'ssl.SSLContext()' and use that to"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.avoid-jsonpickle
+    pattern: jsonpickle.decode($PAYLOAD,...)
+    message: "Avoid using `jsonpickle`, which is known to lead to code execution vulnerabilities. When unpickling, the serialized data could be manipulated to run arbitrary code. Instead, consider serializing the r"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.avoid-unsafe-ruamel-1
+    pattern: ruamel.yaml.YAML(..., typ='unsafe', ...)
+    message: "Avoid using unsafe `ruamel.yaml.YAML()`. `ruamel.yaml.YAML` can create arbitrary Python objects. A malicious actor could exploit this to run arbitrary code. Use `YAML(typ='rt')` or `YAML(typ='safe')` "
+    languages: [python]
+    severity: ERROR
+
+  - id: community.avoid-unsafe-ruamel-2
+    pattern: ruamel.yaml.YAML(..., typ='base', ...)
+    message: "Avoid using unsafe `ruamel.yaml.YAML()`. `ruamel.yaml.YAML` can create arbitrary Python objects. A malicious actor could exploit this to run arbitrary code. Use `YAML(typ='rt')` or `YAML(typ='safe')` "
+    languages: [python]
+    severity: ERROR
+
+  - id: community.insecure-hash-algorithm-md5
+    pattern: hashlib.md5(...)
+    message: "Detected MD5 hash algorithm which is considered insecure. MD5 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-sha1
+    pattern: hashlib.sha1(...)
+    message: "Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-function-1
+    pattern: hashlib.new("=~/[M|m][D|d][4|5]/", ...)
+    message: "Detected use of an insecure MD4 or MD5 hash function. These functions have known vulnerabilities and are considered deprecated. Consider using 'SHA256' or a similar function instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-function-2
+    pattern: hashlib.new(..., name="=~/[M|m][D|d][4|5]/", ...)
+    message: "Detected use of an insecure MD4 or MD5 hash function. These functions have known vulnerabilities and are considered deprecated. Consider using 'SHA256' or a similar function instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-uuid-version
+    pattern: uuid.uuid1(...)
+    message: "Using UUID version 1 for UUID generation can lead to predictable UUIDs based on system information (e.g., MAC address, timestamp). This may lead to security risks such as the sandwich attack. Consider"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.use-defused-xml-parse
+    pattern: xml.etree.ElementTree.parse($...ARGS)
+    message: "The native Python `xml` library is vulnerable to XML External Entity (XXE) attacks.  These attacks can leak confidential data and \"XML bombs\" can cause denial of service. Do not use this library to pa"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.use-defusedcsv
+    pattern: csv.writer(...)
+    message: "Detected the generation of a CSV file using the built-in `csv` module. If user data is used to generate the data in this file, it is possible that an attacker could inject a formula when the CSV is im"
+    languages: [python]
+    severity: INFO
+
+  - id: community.insecure-cipher-algorithm-blowfish-1
+    pattern: Cryptodome.Cipher.Blowfish.new(...)
+    message: "Detected Blowfish cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use secure stream ciphers such as ChaCha20, XChaCha20 and Sa"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-blowfish-2
+    pattern: Crypto.Cipher.Blowfish.new(...)
+    message: "Detected Blowfish cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use secure stream ciphers such as ChaCha20, XChaCha20 and Sa"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-des-1
+    pattern: Cryptodome.Cipher.DES.new(...)
+    message: "Detected DES cipher or Triple DES algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use a secure symmetric cipher from the cryptodome p"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-des-2
+    pattern: Crypto.Cipher.DES.new(...)
+    message: "Detected DES cipher or Triple DES algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use a secure symmetric cipher from the cryptodome p"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-des-3
+    pattern: Cryptodome.Cipher.DES3.new(...)
+    message: "Detected DES cipher or Triple DES algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use a secure symmetric cipher from the cryptodome p"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-des-4
+    pattern: Crypto.Cipher.DES3.new(...)
+    message: "Detected DES cipher or Triple DES algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use a secure symmetric cipher from the cryptodome p"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-rc2-1
+    pattern: Cryptodome.Cipher.ARC2.new(...)
+    message: "Detected RC2 cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use secure stream ciphers such as ChaCha20, XChaCha20 and Salsa20"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-rc2-2
+    pattern: Crypto.Cipher.ARC2.new(...)
+    message: "Detected RC2 cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use secure stream ciphers such as ChaCha20, XChaCha20 and Salsa20"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-rc4-1
+    pattern: Cryptodome.Cipher.ARC4.new(...)
+    message: "Detected ARC4 cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use secure stream ciphers such as ChaCha20, XChaCha20 and Salsa2"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-rc4-2
+    pattern: Crypto.Cipher.ARC4.new(...)
+    message: "Detected ARC4 cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use secure stream ciphers such as ChaCha20, XChaCha20 and Salsa2"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-xor-1
+    pattern: Cryptodome.Cipher.XOR.new(...)
+    message: "Detected XOR cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use AES instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-cipher-algorithm-xor-2
+    pattern: Crypto.Cipher.XOR.new(...)
+    message: "Detected XOR cipher algorithm which is considered insecure. This algorithm is not cryptographically secure and can be reversed easily. Use AES instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-md2-1
+    pattern: Crypto.Hash.MD2.new(...)
+    message: "Detected MD2 hash algorithm which is considered insecure. MD2 is not collision resistant and is therefore not suitable as a cryptographic signature.  Use a modern hash algorithm from the SHA-2, SHA-3,"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-md2-2
+    pattern: Cryptodome.Hash.MD2.new (...)
+    message: "Detected MD2 hash algorithm which is considered insecure. MD2 is not collision resistant and is therefore not suitable as a cryptographic signature.  Use a modern hash algorithm from the SHA-2, SHA-3,"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-md4-1
+    pattern: Crypto.Hash.MD4.new(...)
+    message: "Detected MD4 hash algorithm which is considered insecure. MD4 is not collision resistant and is therefore not suitable as a cryptographic signature. Use a modern hash algorithm from the SHA-2, SHA-3, "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-md4-2
+    pattern: Cryptodome.Hash.MD4.new (...)
+    message: "Detected MD4 hash algorithm which is considered insecure. MD4 is not collision resistant and is therefore not suitable as a cryptographic signature. Use a modern hash algorithm from the SHA-2, SHA-3, "
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-md5-1
+    pattern: Crypto.Hash.MD5.new(...)
+    message: "Detected MD5 hash algorithm which is considered insecure. MD5 is not collision resistant and is therefore not suitable as a cryptographic signature.  Use a modern hash algorithm from the SHA-2, SHA-3,"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-md5-2
+    pattern: Cryptodome.Hash.MD5.new (...)
+    message: "Detected MD5 hash algorithm which is considered insecure. MD5 is not collision resistant and is therefore not suitable as a cryptographic signature.  Use a modern hash algorithm from the SHA-2, SHA-3,"
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-sha1-1
+    pattern: Crypto.Hash.SHA.new(...)
+    message: "Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.insecure-hash-algorithm-sha1-2
+    pattern: Cryptodome.Hash.SHA.new (...)
+    message: "Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.mongo-client-bad-auth
+    pattern: pymongo.MongoClient(..., authMechanism='MONGODB-CR')
+    message: "Warning MONGODB-CR was deprecated with the release of MongoDB 3.6 and is no longer supported by MongoDB 4.0 (see https://api.mongodb.com/python/current/examples/authentication.html for details)."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.python.requests.best-practice.use-response-json-shortcut
+    pattern: json.loads($RESP.text)
+    message: "The requests library has a convenient shortcut for reading JSON responses, which lets you stop worrying about deserializing the response yourself."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.disabled-cert-validation-1
+    pattern: requests.put(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.disabled-cert-validation-2
+    pattern: requests.patch(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.disabled-cert-validation-3
+    pattern: requests.delete(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.disabled-cert-validation-4
+    pattern: requests.head(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.disabled-cert-validation-5
+    pattern: requests.options(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.disabled-cert-validation-6
+    pattern: requests.request(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.disabled-cert-validation-7
+    pattern: requests.get(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.disabled-cert-validation-8
+    pattern: requests.post(..., verify=False, ...)
+    message: "Certificate verification has been explicitly disabled. This permits insecure connections to insecure servers. Re-enable certification validation."
+    languages: [python]
+    severity: ERROR
+
+  - id: community.no-auth-over-http
+    pattern: $URL = "=~/http:\/\/.../"
+...
+requests.$W($URL, ..., auth=$X, ...)
+    message: "Authentication detected over HTTP. HTTP does not provide any encryption or protection for these authentication credentials. This may expose these credentials to unauthorized parties. Use 'https://' in"
+    languages: [python]
+    severity: ERROR
+
+  - id: community.len-all-count
+    pattern: len($X.all())
+    message: "Using QUERY.count() instead of len(QUERY.all()) sends less data to the client since the SQLAlchemy method is performed server-side."
+    languages: [python]
+    severity: WARNING
+
+  - id: community.eqeq-is-bad
+    pattern: $X == $X
+    message: "$X == $X is a useless equality check"
+    languages: [python]
+    severity: ERROR
+
