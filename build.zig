@@ -82,6 +82,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "h14_tier_enforcement", .path = "hypothesis/h14_tier_enforcement.zig" },
         .{ .name = "h15_taint_tracking", .path = "hypothesis/h15_taint_tracking.zig" },
         .{ .name = "h16_crossfile_taint", .path = "hypothesis/h16_crossfile_taint.zig" },
+        .{ .name = "h17_custom_sources", .path = "hypothesis/h17_custom_sources.zig" },
     };
 
     // Shared module for ZIR types used across hypotheses

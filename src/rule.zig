@@ -24,6 +24,7 @@ pub const Rule = struct {
     languages: []const []const u8,
     severity: Severity,
     tier: u8 = 0, // 0 = structural, 1 = local reasoning, 2 = intra-procedural, 3 = cross-file
+    sources: []const []const u8 = &.{}, // taint sources: ["request.args.get(...)", "input(...)"]
 };
 
 pub const CallPattern = struct {
@@ -132,6 +133,7 @@ pub fn parseRules(yaml_source: []const u8, allocator: std.mem.Allocator) ![]Rule
                 .languages = &.{},
                 .severity = .ERROR,
                 .tier = 0,
+                .sources = &.{},
             };
             continue;
         }
@@ -163,6 +165,11 @@ pub fn parseRules(yaml_source: []const u8, allocator: std.mem.Allocator) ![]Rule
 
         if (extractValue(line, "tier:")) |val| {
             current.?.tier = std.fmt.parseInt(u8, val, 10) catch 0;
+            continue;
+        }
+
+        if (extractValue(line, "sources:")) |val| {
+            current.?.sources = try parseFlowList(val, allocator);
             continue;
         }
 

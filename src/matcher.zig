@@ -76,6 +76,7 @@ pub fn matchRules(
     defer sig.deinit();
 
     for (compiled_rules) |cr| {
+        if (cr.rule.tier >= 2) continue; // Tier 2+ handled by taint engine
         if (!languageMatches(cr, lang)) continue;
         if (!passesPrefilter(&sig, cr.prefilter)) continue;
 

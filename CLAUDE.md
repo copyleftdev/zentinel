@@ -6,12 +6,12 @@ Zentinel is a **Semantic Code Intelligence Engine (SCIE)** — Semgrep rebuilt f
 
 ## Project State
 
-Phase 1 MVP — **Complete**. Tier 1–3 — **Complete**. All 11 components implemented. 16/16 hypotheses confirmed. 10/12 benchmarks passing.
+Phase 1 MVP — **Complete**. Tier 1–3 + custom sources — **Complete**. All 11 components implemented. 17/17 hypotheses confirmed. 10/12 benchmarks passing.
 
 - **Language:** Zig 0.14.0 (scanning Python, JavaScript, Go, TypeScript)
 - **Lines of code:** ~5,200 (11 src modules + 16 hypothesis tests)
 - **Test fixtures:** Python, JavaScript, Go, TypeScript (clean + broken + vulnerable + safe)
-- **Hypothesis tests:** 16/16 confirmed
+- **Hypothesis tests:** 17/17 confirmed
 
 ## Hypothesis Results (2026-03-27)
 
@@ -33,6 +33,7 @@ Phase 1 MVP — **Complete**. Tier 1–3 — **Complete**. All 11 components imp
 | H14 | Tier enforcement + cost boundaries | CONFIRMED (5/5) | B-10: 1.08x, B-11: 0.97x, B-12: 2.0% overhead |
 | H15 | Intra-procedural taint tracking | CONFIRMED (8/8) | Param→sink, assignment chain, f-string, cross-lang, 75μs/analysis |
 | H16 | Cross-file taint tracking | CONFIRMED (5/5) | Import→call→sink across files, one-hop, 0.4μs/analysis |
+| H17 | Custom taint sources/sinks | CONFIRMED (6/6) | YAML sources: field, source→taint→sink, backward compat |
 
 ### Known Gaps
 

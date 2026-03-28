@@ -23,6 +23,36 @@ pub const TaintState = struct {
     source_atom: ?zir.AtomId, // atom of the variable that caused taint (for path)
 };
 
+// ── Source specification ──
+
+pub const SourceSpec = struct {
+    callee: ?[]const u8 = null, // for direct calls: "input"
+    object: ?[]const u8 = null, // for member calls: "request"
+    method: ?[]const u8 = null, // for member calls: "args.get" or just "get"
+};
+
+/// Parse a source pattern string like "request.args.get(...)" into a SourceSpec.
+pub fn parseSourcePattern(pattern: []const u8) SourceSpec {
+    const trimmed = std.mem.trim(u8, pattern, &[_]u8{ ' ', '\t' });
+    // Strip trailing (...)
+    const base = if (std.mem.indexOf(u8, trimmed, "(")) |paren_idx|
+        std.mem.trim(u8, trimmed[0..paren_idx], &[_]u8{ ' ', '\t' })
+    else
+        trimmed;
+
+    // Check for member call: "object.method"
+    if (std.mem.lastIndexOfScalar(u8, base, '.')) |dot_idx| {
+        return .{
+            .callee = null,
+            .object = base[0..dot_idx],
+            .method = base[dot_idx + 1 ..],
+        };
+    }
+
+    // Simple call: "input"
+    return .{ .callee = base, .object = null, .method = null };
+}
+
 // ── Sink specification ──
 
 pub const SinkSpec = struct {
@@ -32,6 +62,7 @@ pub const SinkSpec = struct {
     callee: ?[]const u8, // for direct calls: "exec"
     object: ?[]const u8, // for member calls: "cursor"
     method: ?[]const u8, // for member calls: "execute"
+    sources: []const SourceSpec = &.{}, // custom sources (empty = use params)
 };
 
 // ── Public API ──
@@ -74,6 +105,9 @@ pub fn extractSinks(compiled_rules: []const rule.CompiledRule, lang: []const u8,
         }
         if (!lang_match) continue;
 
+        // Parse custom sources from rule
+        const sources = try parseRuleSources(cr.rule.sources, allocator);
+
         switch (cr.pattern) {
             .call => |p| {
                 try sinks.append(.{
@@ -83,6 +117,7 @@ pub fn extractSinks(compiled_rules: []const rule.CompiledRule, lang: []const u8,
                     .callee = p.callee,
                     .object = null,
                     .method = null,
+                    .sources = sources,
                 });
             },
             .member_call => |p| {
@@ -93,6 +128,7 @@ pub fn extractSinks(compiled_rules: []const rule.CompiledRule, lang: []const u8,
                     .callee = null,
                     .object = p.object,
                     .method = p.method,
+                    .sources = sources,
                 });
             },
             else => {},
@@ -102,12 +138,24 @@ pub fn extractSinks(compiled_rules: []const rule.CompiledRule, lang: []const u8,
     return sinks.toOwnedSlice();
 }
 
+/// Parse source pattern strings into SourceSpecs.
+fn parseRuleSources(source_strings: []const []const u8, allocator: std.mem.Allocator) ![]const SourceSpec {
+    if (source_strings.len == 0) return &.{};
+    var specs = std.ArrayList(SourceSpec).init(allocator);
+    for (source_strings) |s| {
+        try specs.append(parseSourcePattern(s));
+    }
+    return specs.toOwnedSlice();
+}
+
 /// Extract SinkSpecs from rules at a specific tier or higher.
 pub fn extractSinksAtTier(compiled_rules: []const rule.CompiledRule, min_tier: u8, allocator: std.mem.Allocator) ![]SinkSpec {
     var sinks = std.ArrayList(SinkSpec).init(allocator);
 
     for (compiled_rules) |cr| {
         if (cr.rule.tier < min_tier) continue;
+
+        const sources = try parseRuleSources(cr.rule.sources, allocator);
 
         switch (cr.pattern) {
             .call => |p| {
@@ -118,6 +166,7 @@ pub fn extractSinksAtTier(compiled_rules: []const rule.CompiledRule, min_tier: u
                     .callee = p.callee,
                     .object = null,
                     .method = null,
+                    .sources = sources,
                 });
             },
             .member_call => |p| {
@@ -128,6 +177,7 @@ pub fn extractSinksAtTier(compiled_rules: []const rule.CompiledRule, min_tier: u
                     .callee = null,
                     .object = p.object,
                     .method = p.method,
+                    .sources = sources,
                 });
             },
             else => {},
@@ -151,16 +201,25 @@ fn analyzeFunction(
     var taint_map = std.AutoHashMap(zir.AtomId, TaintState).init(allocator);
     defer taint_map.deinit();
 
-    // Phase 1: Seed taint from function parameters
-    for (ci.children(func_id)) |child_id| {
-        if (tree.nodes.items[child_id].kind == .parameter) {
-            try seedParameterTaint(tree, ci, child_id, &taint_map);
+    // Collect all custom sources across all sinks
+    var has_custom_sources = false;
+    for (sinks) |sink| {
+        if (sink.sources.len > 0) {
+            has_custom_sources = true;
+            break;
         }
     }
 
-    // Phase 2: Forward pass — collect all descendants, process in order
-    // Nodes are stored in pre-order (source order), so iterating by NodeId
-    // within the function's subtree gives us the correct forward order.
+    // Phase 1: Seed taint from function parameters (when no custom sources, or always as fallback)
+    if (!has_custom_sources) {
+        for (ci.children(func_id)) |child_id| {
+            if (tree.nodes.items[child_id].kind == .parameter) {
+                try seedParameterTaint(tree, ci, child_id, &taint_map);
+            }
+        }
+    }
+
+    // Phase 2: Forward pass
     const func_start = func_id;
     const func_end = findSubtreeEnd(tree, ci, func_id);
 
@@ -168,15 +227,135 @@ fn analyzeFunction(
     while (nid < func_end) : (nid += 1) {
         const node = tree.nodes.items[nid];
 
-        // Only process nodes inside this function (check ancestry)
         if (!isDescendantOfCached(tree, nid, func_id, func_end)) continue;
 
         switch (node.kind) {
-            .assignment => try processAssignment(tree, ci, nid, &taint_map),
+            .assignment => {
+                // Check if RHS is a call matching a custom source → taint LHS
+                if (has_custom_sources) {
+                    try processSourceAssignment(tree, ci, nid, sinks, &taint_map);
+                }
+                try processAssignment(tree, ci, nid, &taint_map);
+            },
             .call => try checkSink(tree, ci, nid, &taint_map, sinks, findings),
             else => {},
         }
     }
+}
+
+/// Check if an assignment's RHS is a call matching a custom source pattern.
+/// If so, taint the LHS variable.
+fn processSourceAssignment(
+    tree: *const zir.ZirTree,
+    ci: *const fast_matcher.ChildIndex,
+    assign_id: zir.NodeId,
+    sinks: []const SinkSpec,
+    taint_map: *std.AutoHashMap(zir.AtomId, TaintState),
+) !void {
+    const children = ci.children(assign_id);
+
+    // Find LHS identifier
+    var lhs_atom: ?zir.AtomId = null;
+    for (children) |child_id| {
+        const child = tree.nodes.items[child_id];
+        if (child.kind == .identifier and child.atom != null) {
+            lhs_atom = child.atom;
+            break;
+        }
+    }
+    if (lhs_atom == null) return;
+
+    // Check if any child (RHS) is a call matching a source pattern
+    var first_id_seen = false;
+    for (children) |child_id| {
+        const child = tree.nodes.items[child_id];
+
+        // Skip LHS
+        if (!first_id_seen and child.kind == .identifier) {
+            first_id_seen = true;
+            continue;
+        }
+
+        if (child.kind == .call) {
+            if (matchesAnySource(tree, ci, child_id, sinks)) {
+                try taint_map.put(lhs_atom.?, .{
+                    .source_node = child_id,
+                    .reason = .assignment_call,
+                    .source_atom = null,
+                });
+                return;
+            }
+        }
+    }
+}
+
+/// Check if a call node matches any source pattern across all sinks.
+fn matchesAnySource(
+    tree: *const zir.ZirTree,
+    ci: *const fast_matcher.ChildIndex,
+    call_id: zir.NodeId,
+    sinks: []const SinkSpec,
+) bool {
+    // Extract callee info from call
+    var direct_callee: ?[]const u8 = null;
+    var member_parts: [4][]const u8 = undefined;
+    var member_count: usize = 0;
+
+    for (ci.children(call_id)) |child_id| {
+        const child = tree.nodes.items[child_id];
+        if (child.kind == .identifier) {
+            if (child.atom) |aid| direct_callee = tree.atoms.get(aid);
+        } else if (child.kind == .member_access) {
+            for (ci.children(child_id)) |gc_id| {
+                const gc = tree.nodes.items[gc_id];
+                if (gc.kind == .identifier) {
+                    if (gc.atom) |aid| {
+                        if (member_count < 4) {
+                            member_parts[member_count] = tree.atoms.get(aid);
+                            member_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (sinks) |sink| {
+        for (sink.sources) |source| {
+            // Direct call match
+            if (source.callee) |callee| {
+                if (direct_callee) |dc| {
+                    if (std.mem.eql(u8, dc, callee)) return true;
+                }
+            }
+            // Member call match: check if object and method appear in member parts
+            if (source.object != null and source.method != null) {
+                if (matchesMemberSource(source, member_parts[0..member_count])) return true;
+            }
+        }
+    }
+    return false;
+}
+
+/// Check if member access parts match a source spec like "request.args.get"
+fn matchesMemberSource(source: SourceSpec, parts: []const []const u8) bool {
+    // The source object might be "request.args" and method "get"
+    // Or object might be "request" and we need to match the last part as method
+    const method = source.method orelse return false;
+    const object = source.object orelse return false;
+
+    // Simple case: method is last part, object matches earlier parts
+    for (parts) |part| {
+        if (std.mem.eql(u8, part, method)) {
+            // Check if any other part matches the object (or the end of it)
+            for (parts) |other| {
+                if (std.mem.eql(u8, other, object)) return true;
+                // Also check if object ends with this part (e.g., "request.args" contains "args")
+                if (std.mem.endsWith(u8, object, other)) return true;
+            }
+        }
+    }
+    return false;
 }
 
 /// Analyze a specific function with only certain parameters seeded as tainted.

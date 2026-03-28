@@ -109,6 +109,7 @@ pub const RuleIndex = struct {
         var call_entries_list = std.ArrayList(IndexEntry).init(allocator);
 
         for (compiled_rules, 0..) |cr, i| {
+            if (cr.rule.tier >= 2) continue; // Tier 2+ handled by taint engine
             const entry = IndexEntry{ .rule_idx = @intCast(i), .cr = cr };
             switch (cr.pattern) {
                 .call => |p| {

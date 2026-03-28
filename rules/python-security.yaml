@@ -164,6 +164,39 @@ rules:
     languages: [python]
     severity: ERROR
 
+  # ── Tier 2: Taint — Source/Sink Rules ───────────────────
+  - id: python.security.sql-injection-taint
+    pattern: cursor.execute(...)
+    sources: [request.args.get(...), request.form.get(...), request.get(...), input(...)]
+    message: SQL injection — user input flows to database query
+    languages: [python]
+    severity: ERROR
+    tier: 2
+
+  - id: python.security.exec-taint
+    pattern: exec(...)
+    sources: [request.args.get(...), request.form.get(...), input(...), sys.argv]
+    message: Code injection — user input flows to exec()
+    languages: [python]
+    severity: ERROR
+    tier: 2
+
+  - id: python.security.eval-taint
+    pattern: eval(...)
+    sources: [request.args.get(...), request.form.get(...), input(...)]
+    message: Code injection — user input flows to eval()
+    languages: [python]
+    severity: ERROR
+    tier: 2
+
+  - id: python.security.os-system-taint
+    pattern: os.system(...)
+    sources: [request.args.get(...), input(...), sys.argv]
+    message: Command injection — user input flows to os.system()
+    languages: [python]
+    severity: ERROR
+    tier: 2
+
   # ── Hardcoded Secrets ──────────────────────────────────
   - id: python.security.hardcoded-secret
     pattern: $KEY = "..."
