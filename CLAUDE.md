@@ -6,12 +6,12 @@ Zentinel is a **Semantic Code Intelligence Engine (SCIE)** — Semgrep rebuilt f
 
 ## Project State
 
-Phase 1 MVP — **Complete**. Tier 1 (local reasoning) — **Complete**. All 9 components implemented. 14/14 hypotheses confirmed. 10/12 benchmarks passing.
+Phase 1 MVP — **Complete**. Tier 1 (local reasoning) — **Complete**. Tier 2 (intra-procedural taint) — **Complete**. All 10 components implemented. 15/15 hypotheses confirmed. 10/12 benchmarks passing.
 
 - **Language:** Zig 0.14.0 (scanning Python, JavaScript, Go, TypeScript)
-- **Lines of code:** ~4,200 (8 src modules + 14 hypothesis tests)
+- **Lines of code:** ~4,600 (9 src modules + 15 hypothesis tests)
 - **Test fixtures:** Python + JavaScript (clean + broken variants)
-- **Hypothesis tests:** 14/14 confirmed
+- **Hypothesis tests:** 15/15 confirmed
 
 ## Hypothesis Results (2026-03-27)
 
@@ -31,6 +31,7 @@ Phase 1 MVP — **Complete**. Tier 1 (local reasoning) — **Complete**. All 9 c
 | H12 | Assignment precision (Tier 1) | CONFIRMED (8/8) | `$KEY = "..."` rejects int/bool/null RHS; 62.5% FP reduction |
 | H13 | Argument constraints (Tier 1) | CONFIRMED (6/6) | keyword args, exact string, f-string/template — zero FP |
 | H14 | Tier enforcement + cost boundaries | CONFIRMED (5/5) | B-10: 1.08x, B-11: 0.97x, B-12: 2.0% overhead |
+| H15 | Intra-procedural taint tracking | CONFIRMED (8/8) | Param→sink, assignment chain, f-string, cross-lang, 75μs/analysis |
 
 ### Known Gaps
 
@@ -44,6 +45,7 @@ zentinel/
 ├── prd.md                 # Product requirements (READ-ONLY reference)
 ├── build.zig              # Build system — compiles grammars + all targets
 ├── src/
+│   ├── taint.zig          # Tier 2 taint analysis (intra-procedural data flow)
 │   ├── fast_matcher.zig    # Indexed matcher (SIMD hash, atom→rules dispatch)
 │   ├── main.zig           # CLI entry point (zent scan --format text|sarif)
 │   ├── matcher.zig        # Match engine (run rules against ZIR, produce findings)
@@ -59,7 +61,7 @@ zentinel/
 │   ├── go-security.yaml          # 4 Go security rules
 │   ├── typescript-security.yaml  # 14 TypeScript security rules (mirrors JS + Tier 1)
 │   └── universal-security.yaml   # 3 cross-language rules
-├── hypothesis/            # Hypothesis test executables (h1–h14)
+├── hypothesis/            # Hypothesis test executables (h1–h15)
 ├── test_fixtures/
 │   ├── python/            # clean.py, broken.py, vulnerable.py, safe.py
 │   ├── javascript/        # clean.js, broken.js, vulnerable.js, safe.js
@@ -110,7 +112,7 @@ zentinel/
 1. **Zig is the implementation language.** Single static binary, no runtime dependencies. C interop for tree-sitter.
 2. **Tree-sitter for parsing.** Error-tolerant, incremental, multi-language. Via C FFI, not native Zig parsers (for now).
 3. **ZIR is the unified intermediate representation.** Language-agnostic node types. All matching operates on ZIR, never on raw CST.
-4. **Tiered cost model.** Rules declare their cost tier (0–3). Engine never pays Tier 3 cost for Tier 0 rules. Tier 0: structural matching. Tier 1: local reasoning (literal classification, argument constraints). Tier 2+: not yet implemented.
+4. **Tiered cost model.** Rules declare their cost tier (0–3). Engine never pays Tier 3 cost for Tier 0 rules. Tier 0: structural matching. Tier 1: local reasoning (literal classification, argument constraints). Tier 2: intra-procedural taint (parameter→variable→sink tracking). Tier 3: cross-file (not yet implemented).
 5. **Prefilter before match.** File signatures (identifiers, node kinds) compared against rule requirements. Skip mismatches entirely.
 6. **Arena allocators for hot paths.** ZIR construction and matching use arena allocation. Reset per file, no individual frees.
 7. **Deterministic execution.** Same input → same output. Seeded scheduling. No nondeterministic traversal.

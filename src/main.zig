@@ -11,6 +11,7 @@ const rule = @import("rule");
 const matcher = @import("matcher");
 const fast_matcher = @import("fast_matcher");
 const sarif = @import("sarif");
+const taint = @import("taint");
 const cache = @import("cache");
 
 const stderr = std.io.getStdErr().writer();
@@ -219,7 +220,25 @@ fn runScan(args: []const []const u8, allocator: std.mem.Allocator) !void {
         defer ztree.deinit();
         try normalizer.buildZir(&ztree, &tree.rootNode(), null, lang.ts_lang);
 
-        const findings = try fast_matcher.matchIndexed(&ztree, &rule_index, lang.name, allocator);
+        var findings_list = std.ArrayList(matcher.Finding).init(allocator);
+
+        // Tier 0/1: structural + argument matching
+        const structural_findings = try fast_matcher.matchIndexed(&ztree, &rule_index, lang.name, allocator);
+        try findings_list.appendSlice(structural_findings);
+        allocator.free(structural_findings);
+
+        // Tier 2: taint analysis (only if Tier 2 rules exist)
+        const tier2_sinks = try taint.extractSinks(compiled, lang.name, allocator);
+        defer allocator.free(tier2_sinks);
+        if (tier2_sinks.len > 0) {
+            var ci = try fast_matcher.ChildIndex.build(&ztree, allocator);
+            defer ci.deinit(allocator);
+            const taint_findings = try taint.analyzeTaint(&ztree, &ci, tier2_sinks, lang.name, allocator);
+            try findings_list.appendSlice(taint_findings);
+            allocator.free(taint_findings);
+        }
+
+        const findings = try findings_list.toOwnedSlice();
 
         // Store to cache
         cache.store(key, findings, allocator);
