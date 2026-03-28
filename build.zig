@@ -141,6 +141,17 @@ pub fn build(b: *std.Build) void {
     crossfile_mod.addImport("fast_matcher", fast_matcher_mod);
     crossfile_mod.addImport("taint", taint_mod);
 
+    const web_mod = b.addModule("web", .{
+        .root_source_file = .{ .cwd_relative = "src/web.zig" },
+    });
+    web_mod.addImport("zir", zir_mod);
+    web_mod.addImport("treesitter", ts_mod);
+    web_mod.addImport("normalizer", normalizer_mod);
+    web_mod.addImport("rule", rule_mod);
+    web_mod.addImport("matcher", matcher_mod);
+    web_mod.addImport("fast_matcher", fast_matcher_mod);
+    web_mod.addImport("taint", taint_mod);
+
     const cache_mod = b.addModule("cache", .{
         .root_source_file = .{ .cwd_relative = "src/cache.zig" },
     });
@@ -174,6 +185,7 @@ pub fn build(b: *std.Build) void {
     zent.root_module.addImport("fast_matcher", fast_matcher_mod);
     zent.root_module.addImport("taint", taint_mod);
     zent.root_module.addImport("crossfile", crossfile_mod);
+    zent.root_module.addImport("web", web_mod);
     zent.root_module.addImport("cache", cache_mod);
     b.installArtifact(zent);
 

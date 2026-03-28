@@ -13,6 +13,7 @@ const fast_matcher = @import("fast_matcher");
 const sarif = @import("sarif");
 const taint = @import("taint");
 const crossfile = @import("crossfile");
+const web = @import("web");
 const cache = @import("cache");
 
 const stderr = std.io.getStdErr().writer();
@@ -36,6 +37,8 @@ pub fn main() !void {
     const command = args[1];
     if (std.mem.eql(u8, command, "scan")) {
         try runScan(args[2..], allocator);
+    } else if (std.mem.eql(u8, command, "serve")) {
+        try web.runServe(args[2..], allocator);
     } else if (std.mem.eql(u8, command, "help") or std.mem.eql(u8, command, "--help") or std.mem.eql(u8, command, "-h")) {
         try printUsage();
     } else {
@@ -51,6 +54,7 @@ fn printUsage() !void {
         \\
         \\Commands:
         \\  scan <files...> [options]    Scan files for issues
+        \\  serve [options]              Start web scanner dashboard
         \\  help                         Show this help
         \\
         \\Scan Options:
@@ -58,9 +62,14 @@ fn printUsage() !void {
         \\  --format, -f <text|sarif>    Output format (default: text)
         \\  --max-tier <0-3>             Maximum rule tier to run (default: all)
         \\
+        \\Serve Options:
+        \\  --port, -p <port>            HTTP port (default: 8000)
+        \\  --rules, -r <path>           Rules directory (default: rules)
+        \\
         \\Examples:
         \\  zent scan src/*.py --config rules.yaml
         \\  zent scan app.js --config rules.yaml --format sarif
+        \\  zent serve --port 8080
         \\
     );
 }
