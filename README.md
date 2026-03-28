@@ -99,14 +99,20 @@ One binary at `zig-out/bin/zent` (7MB, zero dependencies).
 ### Scan
 
 ```bash
-# Text output (default)
+# Scan with one rule file
 zent scan src/**/*.py --config rules/python-security.yaml
 
+# Scan with ALL rules (loads entire directory recursively)
+zent scan src/ --config rules/
+
+# Multiple rule files
+zent scan src/ -c rules/go-security.yaml -c rules/community/go-community.yaml
+
 # Agent/JSON output — structured for AI agents and automation
-zent scan src/ --config rules.yaml --format agent
+zent scan src/ --config rules/ --format agent
 
 # SARIF for CI/CD integration (GitHub Code Scanning, VS Code, etc.)
-zent scan src/ --config rules.yaml --format sarif > results.sarif
+zent scan src/ --config rules/ --format sarif > results.sarif
 
 # Web dashboard — paste a GitHub URL, get a security report
 zent serve --port 8000

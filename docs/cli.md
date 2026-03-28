@@ -26,7 +26,7 @@ zent scan <files...> [options]
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--config <path>` | `-c` | Rules file (required) |
+| `--config <path>` | `-c` | Rules file or directory (repeatable) |
 | `--format <format>` | `-f` | Output format: `text`, `sarif`, `agent` (default: `text`) |
 | `--max-tier <0-3>` | | Maximum rule tier to run (default: all) |
 
@@ -39,8 +39,11 @@ zent scan app.py -c rules/python-security.yaml
 # Multiple files
 zent scan src/auth.py src/api.py -c rules/python-security.yaml
 
-# Glob pattern
-zent scan src/**/*.js -c rules/javascript-security.yaml
+# Multiple rule files
+zent scan src/ -c rules/go-security.yaml -c rules/community/go-community.yaml
+
+# Load all rules from a directory (recursive)
+zent scan src/ --config rules/
 
 # SARIF output
 zent scan src/ -c rules/python-security.yaml -f sarif > results.sarif

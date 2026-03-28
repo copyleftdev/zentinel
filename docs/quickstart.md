@@ -44,17 +44,17 @@ zig build -Doptimize=ReleaseFast
 
 ## Your first scan
 
-Zentinel ships with built-in rule sets. Grab one and point it at your code.
+Zentinel ships with built-in rule sets. Point them at your code.
 
 ```bash
-# Scan Python files
+# Scan with one rule file
 zent scan src/**/*.py --config rules/python-security.yaml
 
-# Scan JavaScript files
-zent scan src/**/*.js --config rules/javascript-security.yaml
+# Scan with multiple rule files
+zent scan src/ -c rules/go-security.yaml -c rules/community/go-community.yaml
 
-# Scan both
-zent scan src/ --config rules/universal-security.yaml
+# Scan with ALL rules (loads entire directory)
+zent scan src/ --config rules/
 ```
 
 ## Reading the output
